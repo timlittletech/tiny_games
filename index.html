@@ -1,0 +1,1835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#fdf6e3">
+<title>Tiny Garden</title>
+<style>
+  :root {
+    --sky-top:#fdf6e3;
+    --sky-bot:#e6f0d8;
+    --grass:#9fc77a;
+    --grass-dark:#7fae5d;
+    --petal:#f4a8c2;
+    --petal-deep:#e88aa9;
+    --sun:#f5d76e;
+    --sun-deep:#e9c44a;
+    --lavender:#c5a8d8;
+    --leaf:#7fae5d;
+    --ladybug:#d96666;
+    --bark:#7b5b3d;
+    --ink:#4a3328;
+    --soft:#fff8ec;
+    --cloud:#ffffff;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height:100%; margin:0; overflow:hidden; overscroll-behavior:none; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Quicksand", "Comic Sans MS", system-ui, sans-serif;
+    color: var(--ink);
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 75%, var(--grass) 100%);
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:none;
+  }
+  header {
+    position:fixed; top:0; left:0; right:0;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: max(env(safe-area-inset-top), 10px) 16px 8px 16px;
+    z-index: 20;
+    pointer-events:none;
+  }
+  header .title {
+    font-size: clamp(18px, 4vw, 24px);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--ink);
+    background: rgba(255,255,255,0.55);
+    padding: 6px 14px;
+    border-radius: 999px;
+    pointer-events:auto;
+  }
+  header .controls { display:flex; gap:8px; pointer-events:auto; }
+  .iconbtn {
+    width:44px; height:44px; border-radius:50%;
+    border:none; background:rgba(255,255,255,0.7);
+    font-size:20px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 2px 6px rgba(74,51,40,0.12);
+  }
+  .iconbtn:active { transform: scale(0.94); }
+
+  .carousel {
+    position:relative;
+    width:100%; height:100%;
+    overflow:hidden;
+  }
+  .track {
+    display:flex;
+    width:100%; height:100%;
+    transition: transform 420ms cubic-bezier(.22,1,.36,1);
+    will-change: transform;
+  }
+  .game {
+    flex: 0 0 100%;
+    width:100%; height:100%;
+    position:relative;
+    overflow:hidden;
+  }
+  .game-label {
+    position:absolute; top: calc(max(env(safe-area-inset-top),10px) + 56px);
+    left:50%; transform:translateX(-50%);
+    background: rgba(255,255,255,0.7);
+    padding: 8px 18px; border-radius: 999px;
+    font-weight:700; font-size: clamp(14px, 3.5vw, 18px);
+    z-index: 5;
+    box-shadow: 0 2px 6px rgba(74,51,40,0.08);
+  }
+
+  /* Navigation */
+  .nav {
+    position:absolute; top:50%; transform:translateY(-50%);
+    width:56px; height:56px; border-radius:50%;
+    border:none; background: rgba(255,255,255,0.75);
+    font-size: 28px; line-height:1; color: var(--ink);
+    z-index: 15; cursor:pointer;
+    box-shadow: 0 3px 8px rgba(74,51,40,0.15);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .nav:active { transform: translateY(-50%) scale(0.92); }
+  .nav.prev { left: 10px; }
+  .nav.next { right: 10px; }
+  .nav:disabled { opacity: 0.35; }
+
+  /* Dot indicator */
+  .dots {
+    position: fixed; bottom: max(env(safe-area-inset-bottom), 10px);
+    left:50%; transform:translateX(-50%);
+    display:flex; gap:8px; padding:8px 12px;
+    background: rgba(255,255,255,0.55);
+    border-radius: 999px; z-index: 20;
+  }
+  .dot {
+    width:12px; height:12px; border-radius:50%;
+    background: rgba(74,51,40,0.25);
+    border:none; padding:0; cursor:pointer;
+    transition: background-color 200ms, transform 200ms;
+  }
+  .dot.active { background: var(--petal-deep); transform: scale(1.3); }
+
+  /* Scene base */
+  .scene {
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .scene svg { width:100%; height:100%; display:block; }
+
+  /* ==== Game 1: Pop ==== */
+  #pop-canvas { position:absolute; inset:0; }
+  .seed {
+    position:absolute; pointer-events:auto;
+    width:54px; height:54px;
+    transition: transform 80ms;
+  }
+  .seed.popping { animation: popOut 380ms ease-out forwards; pointer-events:none; }
+  @keyframes popOut {
+    0% { transform: scale(1); opacity:1; }
+    100% { transform: scale(1.8); opacity:0; }
+  }
+
+  /* ==== Game 2: Count ==== */
+  .count-stage {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding-top: 90px; padding-bottom: 130px;
+  }
+  .count-flower { position:relative; width: min(60vw, 320px); aspect-ratio: 1/1; }
+  .count-flower svg { width:100%; height:100%; }
+  .count-bug {
+    position:absolute; width:38px; height:38px;
+    transition: transform 400ms ease;
+  }
+  .count-choices {
+    display:flex; gap:14px; margin-top: 18px;
+    flex-wrap:wrap; justify-content:center;
+  }
+  .choice {
+    width: 74px; height: 74px; border-radius: 22px;
+    border:none; cursor:pointer;
+    background: var(--soft);
+    box-shadow: 0 4px 0 var(--petal-deep), 0 6px 10px rgba(74,51,40,0.12);
+    font-size: 34px; font-weight:800; color: var(--ink);
+  }
+  .choice:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--petal-deep); }
+  .choice.right { background: #d9f0c1; animation: wiggle 500ms ease; }
+  .choice.wrong { animation: shake 320ms ease; }
+  @keyframes wiggle {
+    0%,100% { transform: rotate(0); }
+    25% { transform: rotate(-6deg); }
+    75% { transform: rotate(6deg); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  /* ==== Game 3: Letters ==== */
+  .letter-stage {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding-top: 90px; padding-bottom: 130px;
+    gap: 18px;
+  }
+  .letter-prompt {
+    background: rgba(255,255,255,0.85);
+    border-radius: 24px;
+    padding: 14px 26px;
+    font-size: clamp(22px, 6vw, 32px);
+    font-weight: 800;
+    display:flex; align-items:center; gap: 14px;
+    box-shadow: 0 4px 10px rgba(74,51,40,0.1);
+  }
+  .speak-btn { background: var(--sun); border:none; width:46px; height:46px;
+    border-radius:50%; font-size:22px; cursor:pointer;
+    box-shadow: 0 3px 0 var(--sun-deep);
+  }
+  .speak-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--sun-deep); }
+  .letter-grid {
+    display:grid; grid-template-columns: repeat(2, 1fr); gap: 18px;
+    max-width: 360px; width: 90%;
+  }
+  .letter-flower {
+    position:relative; aspect-ratio: 1/1;
+    border:none; background:transparent; cursor:pointer;
+    padding:0;
+  }
+  .letter-flower svg { width:100%; height:100%; display:block; }
+  .letter-flower .lf-text {
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size: clamp(34px, 9vw, 56px); font-weight: 800;
+    color: var(--ink); pointer-events:none;
+  }
+  .letter-flower.right svg { animation: wiggle 600ms ease; }
+  .letter-flower.wrong svg { animation: shake 320ms ease; }
+
+  /* ==== Game 4: Puzzle ==== */
+  .puzzle-stage {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding-top: 90px; padding-bottom: 130px;
+    gap: 14px;
+  }
+  .puzzle-board {
+    position:relative;
+    width: min(72vw, 320px);
+    aspect-ratio: 1/1;
+    background: rgba(255,255,255,0.55);
+    border-radius: 20px;
+    box-shadow: inset 0 0 0 3px rgba(74,51,40,0.08);
+    overflow: hidden;
+  }
+  .puzzle-slot {
+    position:absolute;
+    width:50%; height:50%;
+    border: 2px dashed rgba(74,51,40,0.18);
+    box-sizing: border-box;
+  }
+  .puzzle-piece {
+    position:absolute;
+    width: calc(min(72vw, 320px) / 2);
+    height: calc(min(72vw, 320px) / 2);
+    cursor: grab;
+    touch-action: none;
+    transition: box-shadow 200ms;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(74,51,40,0.18);
+    z-index: 5;
+  }
+  .puzzle-piece.placed { box-shadow: none; cursor: default; z-index: 1; }
+  .puzzle-piece.dragging { z-index: 20; cursor: grabbing; box-shadow: 0 10px 18px rgba(74,51,40,0.25); }
+  .puzzle-tray {
+    position:relative; width: min(72vw, 320px);
+    min-height: 90px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 16px;
+    padding: 8px;
+  }
+  .puzzle-done {
+    position:absolute; inset: 0;
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(255,255,255,0.6);
+    border-radius: 20px;
+    font-size: 24px; font-weight: 800;
+    opacity: 0; pointer-events:none;
+    transition: opacity 400ms;
+  }
+  .puzzle-done.show { opacity: 1; }
+  .reset-btn {
+    background: var(--soft); border:none;
+    padding: 10px 18px; border-radius: 999px;
+    font-weight: 700; font-size: 14px; cursor:pointer;
+    box-shadow: 0 3px 0 var(--petal-deep);
+  }
+  .reset-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--petal-deep); }
+
+  /* ==== Game 5: Butterfly ==== */
+  #butterfly-canvas { position:absolute; inset:0; }
+  .butterfly {
+    position:absolute; width:88px; height:88px;
+    pointer-events:auto; cursor:pointer;
+    transition: left 2200ms ease, top 2200ms ease;
+    transform-origin: center;
+  }
+  .butterfly .wings {
+    transform-origin: 50% 50%;
+    animation: flap 1800ms ease-in-out infinite;
+  }
+  .butterfly.fast .wings { animation-duration: 380ms; }
+  @keyframes flap {
+    0%,100% { transform: scaleX(1); }
+    50% { transform: scaleX(0.5); }
+  }
+  .happy-burst {
+    position:absolute; pointer-events:none;
+    font-size: 28px;
+    animation: rise 1200ms ease-out forwards;
+  }
+  @keyframes rise {
+    0% { transform: translate(-50%,-50%) scale(0.4); opacity:0; }
+    20% { opacity: 1; }
+    100% { transform: translate(-50%, -120%) scale(1.2); opacity:0; }
+  }
+
+  /* Background scene shared bits */
+  .bg-svg { position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; }
+
+  /* Hide scrollbars in inner content if any */
+  ::-webkit-scrollbar { display:none; }
+
+  /* ===== Home hub ===== */
+  body.home-mode .carousel { display:none; }
+  body.home-mode .dots { display:none; }
+  body.game-mode .home { display:none; }
+  body:not(.game-mode) #homeBtn { display:none; }
+
+  .home {
+    position:fixed; inset:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling: touch;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 70%, var(--grass) 100%);
+    padding: max(env(safe-area-inset-top), 14px) 16px max(env(safe-area-inset-bottom), 20px) 16px;
+  }
+  .home-inner {
+    max-width: 640px; margin: 0 auto;
+    padding-top: 56px;
+  }
+  .home-title {
+    text-align:center;
+    font-size: clamp(28px, 7vw, 40px);
+    font-weight: 800; color: var(--ink);
+    margin: 4px 0 4px;
+  }
+  .home-sub {
+    text-align:center;
+    font-size: clamp(13px, 3.5vw, 16px);
+    color: var(--ink); opacity: 0.65;
+    margin-bottom: 22px;
+  }
+  .cards {
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    padding-bottom: 24px;
+  }
+  .card {
+    background: rgba(255,255,255,0.72);
+    border-radius: 22px;
+    padding: 14px 10px 12px;
+    text-align:center;
+    border:none; cursor:pointer;
+    box-shadow: 0 5px 0 rgba(232,138,169,0.40), 0 8px 16px rgba(74,51,40,0.10);
+    display:flex; flex-direction:column;
+    align-items:center; gap: 8px;
+    transition: transform 150ms;
+    font-family: inherit;
+  }
+  .card:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(232,138,169,0.4); }
+  .card .portrait {
+    width: 76px; height: 76px;
+    background: var(--soft);
+    border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: inset 0 -3px 6px rgba(0,0,0,0.04);
+  }
+  .card .portrait svg { width: 64px; height: 64px; display:block; }
+  .card .label {
+    font-weight: 800;
+    font-size: clamp(14px, 3.8vw, 17px);
+    color: var(--ink);
+    line-height: 1.15;
+  }
+  .card .age {
+    font-size: 11px;
+    color: var(--ink);
+    opacity: 0.55;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+  }
+
+  /* ===== Coloring game ===== */
+  .color-stage {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    padding-top: max(env(safe-area-inset-top), 8px);
+    padding-bottom: max(env(safe-area-inset-bottom), 4px);
+  }
+  .color-canvas-wrap {
+    flex: 1 1 auto;
+    display:flex; align-items:center; justify-content:center;
+    padding: 96px 10px 6px;
+    min-height: 0;
+  }
+  svg.coloring {
+    width: 100%;
+    height: 100%;
+    max-width: 460px;
+    background: #fff8ec;
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(74,51,40,0.10);
+    object-fit: contain;
+  }
+  .color-tools {
+    padding: 8px 12px 60px;
+    background: rgba(255,255,255,0.75);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -3px 10px rgba(74,51,40,0.06);
+    display:flex; flex-direction:column;
+    gap: 6px;
+  }
+  .tool-tabs {
+    display:flex; gap: 6px; justify-content:center;
+  }
+  .tab {
+    padding: 6px 16px; border-radius: 999px;
+    border:none; background: transparent;
+    font-weight:700; cursor:pointer;
+    color: var(--ink); opacity: 0.5;
+    font-family: inherit; font-size: 14px;
+  }
+  .tab.active {
+    background: var(--soft); opacity: 1;
+    box-shadow: 0 2px 4px rgba(74,51,40,0.1);
+  }
+  .color-wheel {
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    padding: 2px 0;
+  }
+  .swatch {
+    width: 100%; aspect-ratio: 1/1;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor:pointer;
+    box-shadow: inset 0 -2px 4px rgba(0,0,0,0.10);
+    padding:0;
+  }
+  .swatch.active {
+    border-color: #fff;
+    box-shadow: 0 0 0 3px var(--petal-deep), inset 0 -2px 4px rgba(0,0,0,0.10);
+    transform: scale(1.08);
+  }
+  .sticker-row {
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    padding: 2px 0;
+  }
+  .sticker-pick {
+    width: 100%; aspect-ratio: 1/1;
+    border-radius: 14px;
+    border: 3px solid transparent;
+    background: #fff8ec;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    box-shadow: inset 0 -2px 4px rgba(0,0,0,0.06);
+    padding:0;
+  }
+  .sticker-pick.active {
+    border-color: var(--petal-deep);
+    transform: scale(1.05);
+  }
+  .sticker-pick svg { width: 70%; height: 70%; }
+  .color-actions {
+    display:flex; justify-content:center; gap:8px;
+    margin-top: 2px;
+  }
+
+  .fillable { cursor:pointer; }
+  .placed-sticker { cursor:pointer; pointer-events:auto; }
+</style>
+</head>
+<body class="home-mode">
+
+<header>
+  <div style="display:flex;align-items:center;gap:8px;pointer-events:auto;">
+    <button class="iconbtn" id="homeBtn" aria-label="Home">🏡</button>
+    <div class="title">🌼 Tiny Garden</div>
+  </div>
+  <div class="controls">
+    <button class="iconbtn" id="soundBtn" title="Sound on/off" aria-label="Toggle sound">🔊</button>
+  </div>
+</header>
+
+<!-- Hidden sticker symbol library (referenced by <use href="#stk-..."/>) -->
+<svg width="0" height="0" style="position:absolute;pointer-events:none;" aria-hidden="true">
+  <defs>
+    <symbol id="stk-ladybug" viewBox="0 0 40 40">
+      <ellipse cx="20" cy="23" rx="14" ry="11" fill="#d96666"/>
+      <path d="M20,12 L20,34" stroke="#3a2a22" stroke-width="1.4"/>
+      <circle cx="20" cy="12" r="6" fill="#3a2a22"/>
+      <circle cx="17" cy="10" r="1.4" fill="#fff"/>
+      <circle cx="23" cy="10" r="1.4" fill="#fff"/>
+      <circle cx="14" cy="21" r="1.6" fill="#3a2a22"/>
+      <circle cx="26" cy="21" r="1.6" fill="#3a2a22"/>
+      <circle cx="15" cy="27" r="1.4" fill="#3a2a22"/>
+      <circle cx="25" cy="27" r="1.4" fill="#3a2a22"/>
+    </symbol>
+    <symbol id="stk-bee" viewBox="0 0 40 40">
+      <ellipse cx="20" cy="22" rx="13" ry="10" fill="#f5d76e"/>
+      <path d="M14,18 Q14,28 14,28 M20,16 Q20,30 20,30 M26,18 Q26,28 26,28" stroke="#3a2a22" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <ellipse cx="14" cy="16" rx="8" ry="5" fill="#fff" opacity="0.75"/>
+      <ellipse cx="26" cy="16" rx="8" ry="5" fill="#fff" opacity="0.75"/>
+      <circle cx="32" cy="22" r="1.6" fill="#3a2a22"/>
+      <circle cx="9" cy="22" r="1.4" fill="#3a2a22"/>
+    </symbol>
+    <symbol id="stk-butterfly" viewBox="0 0 40 40">
+      <ellipse cx="13" cy="16" rx="9" ry="7" fill="#f4a8c2"/>
+      <ellipse cx="27" cy="16" rx="9" ry="7" fill="#f4a8c2"/>
+      <ellipse cx="13" cy="26" rx="6" ry="6" fill="#c5a8d8"/>
+      <ellipse cx="27" cy="26" rx="6" ry="6" fill="#c5a8d8"/>
+      <ellipse cx="20" cy="21" rx="2" ry="9" fill="#4a3328"/>
+      <circle cx="20" cy="12" r="2.4" fill="#4a3328"/>
+    </symbol>
+    <symbol id="stk-flower" viewBox="0 0 40 40">
+      <circle cx="20" cy="8" r="7" fill="#f4a8c2"/>
+      <circle cx="32" cy="20" r="7" fill="#f4a8c2"/>
+      <circle cx="20" cy="32" r="7" fill="#f4a8c2"/>
+      <circle cx="8" cy="20" r="7" fill="#f4a8c2"/>
+      <circle cx="11" cy="11" r="6" fill="#f4a8c2"/>
+      <circle cx="29" cy="11" r="6" fill="#f4a8c2"/>
+      <circle cx="11" cy="29" r="6" fill="#f4a8c2"/>
+      <circle cx="29" cy="29" r="6" fill="#f4a8c2"/>
+      <circle cx="20" cy="20" r="7" fill="#f5d76e"/>
+    </symbol>
+    <symbol id="stk-leaf" viewBox="0 0 40 40">
+      <path d="M8,28 Q8,8 28,8 Q32,22 18,32 Q12,32 8,28 Z" fill="#7fae5d"/>
+      <path d="M10,28 Q20,18 28,10" stroke="#5d8a44" stroke-width="1.5" fill="none"/>
+    </symbol>
+    <symbol id="stk-star" viewBox="0 0 40 40">
+      <polygon points="20,4 24,15 36,15 26,22 30,34 20,27 10,34 14,22 4,15 16,15" fill="#f5d76e" stroke="#e9c44a" stroke-width="1.4"/>
+    </symbol>
+    <symbol id="stk-heart" viewBox="0 0 40 40">
+      <path d="M20,33 C8,24 6,15 12,11 C16,9 20,12 20,15 C20,12 24,9 28,11 C34,15 32,24 20,33 Z" fill="#e88aa9"/>
+    </symbol>
+    <symbol id="stk-sun" viewBox="0 0 40 40">
+      <circle cx="20" cy="20" r="9" fill="#f5d76e"/>
+      <g stroke="#e9c44a" stroke-width="2.4" stroke-linecap="round">
+        <line x1="20" y1="3" x2="20" y2="8"/>
+        <line x1="20" y1="32" x2="20" y2="37"/>
+        <line x1="3" y1="20" x2="8" y2="20"/>
+        <line x1="32" y1="20" x2="37" y2="20"/>
+        <line x1="8" y1="8" x2="11" y2="11"/>
+        <line x1="29" y1="29" x2="32" y2="32"/>
+        <line x1="8" y1="32" x2="11" y2="29"/>
+        <line x1="29" y1="11" x2="32" y2="8"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ============ HOME HUB ============ -->
+<div class="home" id="home">
+  <div class="home-inner">
+    <div class="home-title">🌼 Tiny Garden</div>
+    <div class="home-sub">Tap a game to play</div>
+    <div class="cards" id="cards">
+      <button class="card" data-game="pop">
+        <div class="portrait">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="30" cy="30" r="8" fill="#fff8c4"/>
+            <g stroke="#fff" stroke-width="2" stroke-linecap="round">
+              <line x1="30" y1="30" x2="50" y2="14"/>
+              <line x1="30" y1="30" x2="52" y2="30"/>
+              <line x1="30" y1="30" x2="50" y2="46"/>
+              <line x1="30" y1="30" x2="30" y2="52"/>
+              <line x1="30" y1="30" x2="10" y2="46"/>
+              <line x1="30" y1="30" x2="8" y2="30"/>
+              <line x1="30" y1="30" x2="10" y2="14"/>
+              <line x1="30" y1="30" x2="30" y2="8"/>
+            </g>
+            <circle cx="50" cy="14" r="3" fill="#fff"/>
+            <circle cx="52" cy="30" r="3" fill="#fff"/>
+            <circle cx="50" cy="46" r="3" fill="#fff"/>
+            <circle cx="30" cy="52" r="3" fill="#fff"/>
+            <circle cx="10" cy="46" r="3" fill="#fff"/>
+            <circle cx="8" cy="30" r="3" fill="#fff"/>
+            <circle cx="10" cy="14" r="3" fill="#fff"/>
+            <circle cx="30" cy="8" r="3" fill="#fff"/>
+            <circle cx="30" cy="30" r="4" fill="#e9c44a"/>
+          </svg>
+        </div>
+        <div class="label">Pop the Fluff</div>
+        <div class="age">AGES 1–3</div>
+      </button>
+
+      <button class="card" data-game="butterfly">
+        <div class="portrait">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="18" cy="22" rx="13" ry="10" fill="#f4a8c2"/>
+            <ellipse cx="42" cy="22" rx="13" ry="10" fill="#f4a8c2"/>
+            <ellipse cx="19" cy="38" rx="9" ry="8" fill="#c5a8d8"/>
+            <ellipse cx="41" cy="38" rx="9" ry="8" fill="#c5a8d8"/>
+            <ellipse cx="30" cy="30" rx="3" ry="14" fill="#4a3328"/>
+            <circle cx="30" cy="16" r="3.5" fill="#4a3328"/>
+            <circle cx="14" cy="20" r="1.6" fill="#fff"/>
+            <circle cx="46" cy="20" r="1.6" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="label">Butterfly Friend</div>
+        <div class="age">ALL AGES</div>
+      </button>
+
+      <button class="card" data-game="color">
+        <div class="portrait">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="30" cy="32" r="22" fill="#fff8e8" stroke="#4a3328" stroke-width="2"/>
+            <path d="M10,32 A20,20 0 0,1 30,12 L30,32 Z" fill="#f4a8c2"/>
+            <path d="M30,12 A20,20 0 0,1 50,32 L30,32 Z" fill="#f5d76e"/>
+            <path d="M50,32 A20,20 0 0,1 30,52 L30,32 Z" fill="#9fc77a"/>
+            <path d="M30,52 A20,20 0 0,1 10,32 L30,32 Z" fill="#c5a8d8"/>
+            <circle cx="30" cy="32" r="6" fill="#fff8e8"/>
+          </svg>
+        </div>
+        <div class="label">Coloring Garden</div>
+        <div class="age">ALL AGES</div>
+      </button>
+
+      <button class="card" data-game="puzzle">
+        <div class="portrait">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="10" width="18" height="18" rx="3" fill="#f4a8c2"/>
+            <rect x="32" y="10" width="18" height="18" rx="3" fill="#f5d76e"/>
+            <rect x="10" y="32" width="18" height="18" rx="3" fill="#9fc77a"/>
+            <rect x="32" y="32" width="18" height="18" rx="3" fill="#c5a8d8"/>
+          </svg>
+        </div>
+        <div class="label">Garden Puzzle</div>
+        <div class="age">AGES 4–7</div>
+      </button>
+
+      <button class="card" data-game="count">
+        <div class="portrait">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="30" cy="34" rx="20" ry="16" fill="#d96666"/>
+            <path d="M30,18 L30,50" stroke="#3a2a22" stroke-width="2"/>
+            <circle cx="30" cy="18" r="9" fill="#3a2a22"/>
+            <circle cx="26" cy="16" r="2" fill="#fff"/>
+            <circle cx="34" cy="16" r="2" fill="#fff"/>
+            <circle cx="20" cy="30" r="2.4" fill="#3a2a22"/>
+            <circle cx="40" cy="30" r="2.4" fill="#3a2a22"/>
+            <circle cx="22" cy="40" r="2.2" fill="#3a2a22"/>
+            <circle cx="38" cy="40" r="2.2" fill="#3a2a22"/>
+            <circle cx="30" cy="37" r="2.2" fill="#3a2a22"/>
+          </svg>
+        </div>
+        <div class="label">Count Ladybugs</div>
+        <div class="age">AGES 4–7</div>
+      </button>
+
+      <button class="card" data-game="letter">
+        <div class="portrait">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="30" cy="12" r="11" fill="#f4a8c2"/>
+            <circle cx="48" cy="30" r="11" fill="#f4a8c2"/>
+            <circle cx="30" cy="48" r="11" fill="#f4a8c2"/>
+            <circle cx="12" cy="30" r="11" fill="#f4a8c2"/>
+            <circle cx="30" cy="30" r="13" fill="#fff8e8"/>
+            <text x="30" y="38" text-anchor="middle" font-size="20" font-weight="800" fill="#4a3328" font-family="sans-serif">A</text>
+          </svg>
+        </div>
+        <div class="label">Find the Letter</div>
+        <div class="age">AGES 4–7</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="carousel" id="carousel">
+  <button class="nav prev" id="prevBtn" aria-label="Previous game">◀</button>
+  <button class="nav next" id="nextBtn" aria-label="Next game">▶</button>
+
+  <div class="track" id="track">
+
+    <!-- ============ GAME 1: POP ============ -->
+    <section class="game" data-game="pop">
+      <div class="game-label">Pop the Fluff</div>
+      <svg class="bg-svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <!-- sun -->
+        <circle cx="320" cy="80" r="42" fill="var(--sun)" opacity="0.85"/>
+        <!-- clouds -->
+        <ellipse cx="80" cy="100" rx="46" ry="18" fill="#fff" opacity="0.7"/>
+        <ellipse cx="120" cy="90" rx="36" ry="16" fill="#fff" opacity="0.7"/>
+        <!-- grass hills -->
+        <path d="M0,470 Q100,420 200,460 T400,450 L400,600 L0,600 Z" fill="var(--grass)"/>
+        <path d="M0,520 Q120,490 220,510 T400,510 L400,600 L0,600 Z" fill="var(--grass-dark)"/>
+        <!-- flowers -->
+        <g transform="translate(60,510)">
+          <rect x="-2" y="0" width="4" height="40" fill="var(--leaf)"/>
+          <circle cx="0" cy="-4" r="10" fill="var(--petal)"/>
+          <circle cx="-10" cy="-4" r="10" fill="var(--petal)"/>
+          <circle cx="10" cy="-4" r="10" fill="var(--petal)"/>
+          <circle cx="0" cy="-14" r="10" fill="var(--petal)"/>
+          <circle cx="0" cy="6" r="10" fill="var(--petal)"/>
+          <circle cx="0" cy="-4" r="6" fill="var(--sun)"/>
+        </g>
+        <g transform="translate(330,520)">
+          <rect x="-2" y="0" width="4" height="40" fill="var(--leaf)"/>
+          <circle cx="0" cy="-4" r="10" fill="var(--lavender)"/>
+          <circle cx="-10" cy="-4" r="10" fill="var(--lavender)"/>
+          <circle cx="10" cy="-4" r="10" fill="var(--lavender)"/>
+          <circle cx="0" cy="-14" r="10" fill="var(--lavender)"/>
+          <circle cx="0" cy="6" r="10" fill="var(--lavender)"/>
+          <circle cx="0" cy="-4" r="6" fill="var(--sun)"/>
+        </g>
+        <!-- dandelion stems with no fluff -->
+        <g transform="translate(180,540)">
+          <path d="M0,0 Q-2,-30 0,-50" stroke="var(--leaf)" stroke-width="3" fill="none"/>
+        </g>
+        <g transform="translate(260,545)">
+          <path d="M0,0 Q3,-25 0,-45" stroke="var(--leaf)" stroke-width="3" fill="none"/>
+        </g>
+      </svg>
+      <div id="pop-canvas"></div>
+    </section>
+
+    <!-- ============ GAME 2: COUNT ============ -->
+    <section class="game" data-game="count">
+      <div class="game-label">Count the Ladybugs</div>
+      <svg class="bg-svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <circle cx="60" cy="90" r="30" fill="var(--sun)" opacity="0.6"/>
+        <ellipse cx="320" cy="110" rx="40" ry="14" fill="#fff" opacity="0.65"/>
+        <ellipse cx="350" cy="100" rx="26" ry="12" fill="#fff" opacity="0.65"/>
+        <path d="M0,480 Q120,440 220,470 T400,460 L400,600 L0,600 Z" fill="var(--grass)"/>
+        <path d="M0,530 Q140,500 240,520 T400,520 L400,600 L0,600 Z" fill="var(--grass-dark)"/>
+      </svg>
+      <div class="count-stage">
+        <div class="count-flower" id="count-flower">
+          <svg viewBox="0 0 200 200" aria-hidden="true">
+            <!-- stem -->
+            <rect x="96" y="120" width="8" height="80" fill="var(--leaf)"/>
+            <path d="M100,160 Q70,150 60,130 Q85,140 100,160" fill="var(--leaf)"/>
+            <path d="M100,170 Q130,160 140,140 Q115,150 100,170" fill="var(--leaf)"/>
+            <!-- petals -->
+            <g id="big-petals">
+              <ellipse cx="100" cy="55" rx="22" ry="34" fill="var(--petal)"/>
+              <ellipse cx="100" cy="145" rx="22" ry="34" fill="var(--petal)"/>
+              <ellipse cx="55" cy="100" rx="34" ry="22" fill="var(--petal)"/>
+              <ellipse cx="145" cy="100" rx="34" ry="22" fill="var(--petal)"/>
+              <ellipse cx="68" cy="68" rx="26" ry="26" fill="var(--petal)" transform="rotate(-45 68 68)"/>
+              <ellipse cx="132" cy="68" rx="26" ry="26" fill="var(--petal)" transform="rotate(45 132 68)"/>
+              <ellipse cx="68" cy="132" rx="26" ry="26" fill="var(--petal)" transform="rotate(45 68 132)"/>
+              <ellipse cx="132" cy="132" rx="26" ry="26" fill="var(--petal)" transform="rotate(-45 132 132)"/>
+            </g>
+            <circle cx="100" cy="100" r="28" fill="var(--sun)"/>
+            <circle cx="100" cy="100" r="22" fill="var(--sun-deep)" opacity="0.5"/>
+          </svg>
+          <div id="bugs-container"></div>
+        </div>
+        <div class="count-choices" id="count-choices"></div>
+      </div>
+    </section>
+
+    <!-- ============ GAME 3: LETTERS ============ -->
+    <section class="game" data-game="letter">
+      <div class="game-label">Find the Letter</div>
+      <svg class="bg-svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <circle cx="340" cy="80" r="36" fill="var(--sun)" opacity="0.7"/>
+        <ellipse cx="80" cy="120" rx="40" ry="14" fill="#fff" opacity="0.7"/>
+        <path d="M0,500 Q100,460 200,490 T400,480 L400,600 L0,600 Z" fill="var(--grass)"/>
+        <path d="M0,540 Q120,520 240,535 T400,530 L400,600 L0,600 Z" fill="var(--grass-dark)"/>
+      </svg>
+      <div class="letter-stage">
+        <div class="letter-prompt">
+          <span>Find:</span>
+          <span id="letter-target">A</span>
+          <button class="speak-btn" id="speakBtn" aria-label="Say letter">🔊</button>
+        </div>
+        <div class="letter-grid" id="letter-grid"></div>
+      </div>
+    </section>
+
+    <!-- ============ GAME 4: PUZZLE ============ -->
+    <section class="game" data-game="puzzle">
+      <div class="game-label">Garden Puzzle</div>
+      <svg class="bg-svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <circle cx="60" cy="90" r="30" fill="var(--sun)" opacity="0.6"/>
+        <path d="M0,500 Q100,460 200,490 T400,480 L400,600 L0,600 Z" fill="var(--grass)"/>
+        <path d="M0,540 Q120,520 240,535 T400,530 L400,600 L0,600 Z" fill="var(--grass-dark)"/>
+      </svg>
+      <div class="puzzle-stage">
+        <div class="puzzle-board" id="puzzle-board">
+          <div class="puzzle-slot" data-slot="0" style="left:0;top:0;"></div>
+          <div class="puzzle-slot" data-slot="1" style="left:50%;top:0;"></div>
+          <div class="puzzle-slot" data-slot="2" style="left:0;top:50%;"></div>
+          <div class="puzzle-slot" data-slot="3" style="left:50%;top:50%;"></div>
+          <div class="puzzle-done" id="puzzle-done">🎉 You did it!</div>
+        </div>
+        <div class="puzzle-tray" id="puzzle-tray"></div>
+        <button class="reset-btn" id="puzzle-reset">↺ Mix again</button>
+      </div>
+    </section>
+
+    <!-- ============ GAME 5: BUTTERFLY ============ -->
+    <section class="game" data-game="butterfly">
+      <div class="game-label">Butterfly Friend</div>
+      <svg class="bg-svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <circle cx="340" cy="80" r="34" fill="var(--sun)" opacity="0.7"/>
+        <ellipse cx="80" cy="100" rx="44" ry="16" fill="#fff" opacity="0.7"/>
+        <ellipse cx="125" cy="92" rx="32" ry="14" fill="#fff" opacity="0.7"/>
+        <path d="M0,460 Q120,420 220,450 T400,440 L400,600 L0,600 Z" fill="var(--grass)"/>
+        <path d="M0,520 Q140,500 240,520 T400,520 L400,600 L0,600 Z" fill="var(--grass-dark)"/>
+        <!-- a few flowers -->
+        <g transform="translate(50,500)">
+          <rect x="-2" y="0" width="4" height="50" fill="var(--leaf)"/>
+          <circle cx="0" cy="-4" r="10" fill="var(--petal)"/>
+          <circle cx="-10" cy="-4" r="10" fill="var(--petal)"/>
+          <circle cx="10" cy="-4" r="10" fill="var(--petal)"/>
+          <circle cx="0" cy="-14" r="10" fill="var(--petal)"/>
+          <circle cx="0" cy="6" r="10" fill="var(--petal)"/>
+          <circle cx="0" cy="-4" r="6" fill="var(--sun)"/>
+        </g>
+        <g transform="translate(140,520)">
+          <rect x="-2" y="0" width="4" height="40" fill="var(--leaf)"/>
+          <circle cx="0" cy="-4" r="9" fill="var(--lavender)"/>
+          <circle cx="-9" cy="-4" r="9" fill="var(--lavender)"/>
+          <circle cx="9" cy="-4" r="9" fill="var(--lavender)"/>
+          <circle cx="0" cy="-13" r="9" fill="var(--lavender)"/>
+          <circle cx="0" cy="5" r="9" fill="var(--lavender)"/>
+          <circle cx="0" cy="-4" r="5" fill="var(--sun)"/>
+        </g>
+        <g transform="translate(280,510)">
+          <rect x="-2" y="0" width="4" height="50" fill="var(--leaf)"/>
+          <circle cx="0" cy="-4" r="10" fill="var(--sun)"/>
+          <circle cx="-10" cy="-4" r="10" fill="var(--sun)"/>
+          <circle cx="10" cy="-4" r="10" fill="var(--sun)"/>
+          <circle cx="0" cy="-14" r="10" fill="var(--sun)"/>
+          <circle cx="0" cy="6" r="10" fill="var(--sun)"/>
+          <circle cx="0" cy="-4" r="6" fill="var(--bark)"/>
+        </g>
+        <g transform="translate(355,515)">
+          <rect x="-2" y="0" width="4" height="45" fill="var(--leaf)"/>
+          <circle cx="0" cy="-4" r="9" fill="var(--petal)"/>
+          <circle cx="-9" cy="-4" r="9" fill="var(--petal)"/>
+          <circle cx="9" cy="-4" r="9" fill="var(--petal)"/>
+          <circle cx="0" cy="-13" r="9" fill="var(--petal)"/>
+          <circle cx="0" cy="5" r="9" fill="var(--petal)"/>
+          <circle cx="0" cy="-4" r="5" fill="var(--sun)"/>
+        </g>
+      </svg>
+      <div id="butterfly-canvas"></div>
+    </section>
+
+    <!-- ============ GAME 6: COLORING ============ -->
+    <section class="game" data-game="color">
+      <div class="game-label">Coloring Garden</div>
+      <div class="color-stage">
+        <div class="color-canvas-wrap">
+          <svg class="coloring" id="coloring-scene" viewBox="0 0 400 380" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+            <!-- Sky -->
+            <rect class="fillable" data-default="#fff8ec" id="c-sky" x="0" y="0" width="400" height="260" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <!-- Sun -->
+            <circle class="fillable" data-default="#fff8ec" id="c-sun" cx="58" cy="56" r="30" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <!-- Cloud -->
+            <path class="fillable" data-default="#fff8ec" id="c-cloud" d="M270,62 Q270,46 290,46 Q300,38 312,46 Q330,42 332,60 Q340,62 338,74 Q330,80 318,76 Q304,82 290,76 Q272,78 270,62 Z" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <!-- Grass back hill -->
+            <path class="fillable" data-default="#fff8ec" id="c-grass-back" d="M0,265 Q100,245 200,258 T400,250 L400,380 L0,380 Z" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <!-- Grass front -->
+            <path class="fillable" data-default="#fff8ec" id="c-grass-front" d="M0,310 Q120,292 220,302 T400,298 L400,380 L0,380 Z" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+
+            <!-- Flower (center) -->
+            <rect class="fillable" data-default="#fff8ec" id="c-stem" x="194" y="190" width="12" height="120" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <path class="fillable" data-default="#fff8ec" id="c-leaf-l" d="M200,236 Q160,224 140,202 Q172,218 200,236 Z" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <path class="fillable" data-default="#fff8ec" id="c-leaf-r" d="M200,256 Q240,244 260,222 Q228,238 200,256 Z" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <!-- 6 petals around (200,178) -->
+            <g transform="rotate(0 200 178)"><ellipse class="fillable" data-default="#fff8ec" id="c-petal-1" cx="200" cy="138" rx="22" ry="32" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/></g>
+            <g transform="rotate(60 200 178)"><ellipse class="fillable" data-default="#fff8ec" id="c-petal-2" cx="200" cy="138" rx="22" ry="32" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/></g>
+            <g transform="rotate(120 200 178)"><ellipse class="fillable" data-default="#fff8ec" id="c-petal-3" cx="200" cy="138" rx="22" ry="32" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/></g>
+            <g transform="rotate(180 200 178)"><ellipse class="fillable" data-default="#fff8ec" id="c-petal-4" cx="200" cy="138" rx="22" ry="32" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/></g>
+            <g transform="rotate(240 200 178)"><ellipse class="fillable" data-default="#fff8ec" id="c-petal-5" cx="200" cy="138" rx="22" ry="32" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/></g>
+            <g transform="rotate(300 200 178)"><ellipse class="fillable" data-default="#fff8ec" id="c-petal-6" cx="200" cy="138" rx="22" ry="32" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/></g>
+            <circle class="fillable" data-default="#fff8ec" id="c-flower-center" cx="200" cy="178" r="20" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+
+            <!-- Butterfly (top-right area) -->
+            <ellipse class="fillable" data-default="#fff8ec" id="c-wing-tl" cx="305" cy="160" rx="20" ry="15" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <ellipse class="fillable" data-default="#fff8ec" id="c-wing-tr" cx="345" cy="160" rx="20" ry="15" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <ellipse class="fillable" data-default="#fff8ec" id="c-wing-bl" cx="308" cy="190" rx="15" ry="13" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <ellipse class="fillable" data-default="#fff8ec" id="c-wing-br" cx="342" cy="190" rx="15" ry="13" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <ellipse class="fillable" data-default="#fff8ec" id="c-bfly-body" cx="325" cy="175" rx="3.5" ry="20" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+
+            <!-- Mushroom (bottom-left) -->
+            <path class="fillable" data-default="#fff8ec" id="c-mush-cap" d="M40,278 Q40,238 80,238 Q120,238 120,278 Z" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <circle class="fillable" data-default="#fff8ec" id="c-mush-spot-1" cx="60" cy="262" r="5" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <circle class="fillable" data-default="#fff8ec" id="c-mush-spot-2" cx="84" cy="252" r="6" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <circle class="fillable" data-default="#fff8ec" id="c-mush-spot-3" cx="104" cy="266" r="5" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+            <rect class="fillable" data-default="#fff8ec" id="c-mush-stem" x="64" y="278" width="32" height="28" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
+
+            <!-- Stickers layer -->
+            <g id="stickers-layer"></g>
+          </svg>
+        </div>
+        <div class="color-tools">
+          <div class="tool-tabs">
+            <button class="tab active" data-mode="color">🎨 Colors</button>
+            <button class="tab" data-mode="sticker">✨ Stickers</button>
+          </div>
+          <div class="color-wheel" id="color-wheel"></div>
+          <div class="sticker-row" id="sticker-row" style="display:none;"></div>
+          <div class="color-actions">
+            <button class="reset-btn" id="color-clear">↺ Start over</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<div class="dots" id="dots"></div>
+
+<script>
+/* =====================================================
+   SHARED: Sound system (Web Audio, gentle sine chimes)
+   ===================================================== */
+const Sound = (() => {
+  let ctx = null;
+  let enabled = (localStorage.getItem('tg_sound') ?? '1') === '1';
+  function init() {
+    if (!ctx) {
+      try { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch(e) { ctx = null; }
+    }
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+  }
+  function tone(freq, dur=0.35, type='sine', vol=0.14) {
+    if (!enabled) return;
+    init();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(ctx.destination);
+    o.start(t);
+    o.stop(t + dur + 0.05);
+  }
+  function chime(freqs=[660, 880], stagger=80, dur=0.35) {
+    freqs.forEach((f, i) => setTimeout(() => tone(f, dur), i * stagger));
+  }
+  function pop()    { tone(720, 0.18, 'triangle', 0.16); }
+  function correct(){ chime([660, 880, 990], 90, 0.32); }
+  function wrong()  { tone(280, 0.25, 'sine', 0.10); }
+  function happy()  { chime([523, 659, 784, 1047], 70, 0.30); }
+  function gentle() { tone(523, 0.40, 'sine', 0.10); }
+  function setEnabled(v) {
+    enabled = v;
+    localStorage.setItem('tg_sound', v ? '1' : '0');
+  }
+  function isEnabled() { return enabled; }
+  return { init, tone, chime, pop, correct, wrong, happy, gentle, setEnabled, isEnabled };
+})();
+
+const soundBtn = document.getElementById('soundBtn');
+function updateSoundBtn() { soundBtn.textContent = Sound.isEnabled() ? '🔊' : '🔇'; }
+updateSoundBtn();
+soundBtn.addEventListener('click', () => {
+  Sound.setEnabled(!Sound.isEnabled());
+  updateSoundBtn();
+  if (Sound.isEnabled()) Sound.gentle();
+});
+// Unlock audio on first user gesture
+window.addEventListener('pointerdown', () => Sound.init(), { once:true });
+
+
+/* =====================================================
+   SHARED: Carousel
+   ===================================================== */
+const track = document.getElementById('track');
+const games = Array.from(track.querySelectorAll('.game'));
+const dotsBox = document.getElementById('dots');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+let current = 0;
+games.forEach((_, i) => {
+  const d = document.createElement('button');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.setAttribute('aria-label', 'Go to game ' + (i+1));
+  d.addEventListener('click', () => goTo(i));
+  dotsBox.appendChild(d);
+});
+const dotEls = Array.from(dotsBox.children);
+
+function goTo(i, silent = false) {
+  current = Math.max(0, Math.min(games.length - 1, i));
+  track.style.transform = `translateX(${-current * 100}%)`;
+  dotEls.forEach((d, idx) => d.classList.toggle('active', idx === current));
+  prevBtn.disabled = current === 0;
+  nextBtn.disabled = current === games.length - 1;
+  if (!silent) {
+    Sound.gentle();
+    document.dispatchEvent(new CustomEvent('game-activated', { detail: { game: games[current].dataset.game } }));
+  }
+}
+
+/* Home / Game mode switching */
+function showHome() {
+  document.body.classList.remove('game-mode');
+  document.body.classList.add('home-mode');
+  // Stop any running game loops
+  document.dispatchEvent(new CustomEvent('game-activated', { detail: { game: 'none' } }));
+  Sound.gentle();
+}
+function showGame(idx) {
+  document.body.classList.remove('home-mode');
+  document.body.classList.add('game-mode');
+  goTo(idx);
+}
+document.getElementById('homeBtn').addEventListener('click', showHome);
+document.querySelectorAll('#cards .card').forEach(c => {
+  c.addEventListener('click', () => {
+    const target = c.dataset.game;
+    const idx = games.findIndex(g => g.dataset.game === target);
+    if (idx >= 0) showGame(idx);
+  });
+});
+prevBtn.addEventListener('click', () => goTo(current - 1));
+nextBtn.addEventListener('click', () => goTo(current + 1));
+
+// keyboard nav
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+  else if (e.key === 'ArrowRight') goTo(current + 1);
+});
+
+// touch swipe
+let touchStartX = null, touchStartY = null, swiping = false;
+const carousel = document.getElementById('carousel');
+function isInteractive(target) {
+  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools');
+}
+carousel.addEventListener('touchstart', (e) => {
+  if (e.touches.length !== 1) return;
+  if (isInteractive(e.target)) { swiping = false; touchStartX = null; return; }
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  swiping = true;
+}, { passive: true });
+carousel.addEventListener('touchmove', (e) => {
+  if (!swiping || touchStartX === null) return;
+  const dx = e.touches[0].clientX - touchStartX;
+  const dy = e.touches[0].clientY - touchStartY;
+  // if vertical, ignore
+  if (Math.abs(dy) > Math.abs(dx)) swiping = false;
+}, { passive: true });
+carousel.addEventListener('touchend', (e) => {
+  if (!swiping || touchStartX === null) { touchStartX = null; return; }
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 60) {
+    if (dx < 0) goTo(current + 1);
+    else goTo(current - 1);
+  }
+  touchStartX = null; swiping = false;
+}, { passive: true });
+
+// mouse drag (for desktop) — only swipe outside interactive zones
+let mouseDown = false, mouseStartX = 0;
+carousel.addEventListener('mousedown', (e) => {
+  // skip if clicking interactive
+  if (e.target.closest('button, .seed, .puzzle-piece, .butterfly, .letter-flower, .choice, svg.coloring, .fillable')) return;
+  mouseDown = true; mouseStartX = e.clientX;
+});
+window.addEventListener('mouseup', (e) => {
+  if (!mouseDown) return;
+  const dx = e.clientX - mouseStartX;
+  if (Math.abs(dx) > 80) {
+    if (dx < 0) goTo(current + 1);
+    else goTo(current - 1);
+  }
+  mouseDown = false;
+});
+
+// Position carousel silently — actual activation happens when user picks a game from home.
+goTo(0, true);
+
+
+/* =====================================================
+   GAME 1: Pop the Fluff
+   ===================================================== */
+(() => {
+  const wrap = document.getElementById('pop-canvas');
+  const seeds = [];
+  let spawnTimer = null;
+  let active = false;
+
+  function makeSeedSVG() {
+    return `
+      <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+        <g>
+          ${Array.from({length: 12}).map((_,i)=>{
+            const a = (i/12)*Math.PI*2;
+            const x = 30 + Math.cos(a)*22;
+            const y = 30 + Math.sin(a)*22;
+            return `<line x1="30" y1="30" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+                    <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="#fff" opacity="0.95"/>`;
+          }).join('')}
+          <circle cx="30" cy="30" r="6" fill="#fff8c4"/>
+          <circle cx="30" cy="30" r="3" fill="#e9c44a"/>
+        </g>
+      </svg>
+    `;
+  }
+
+  function spawn() {
+    if (!active) return;
+    const el = document.createElement('div');
+    el.className = 'seed';
+    el.innerHTML = makeSeedSVG();
+    const rect = wrap.getBoundingClientRect();
+    const x = Math.random() * (rect.width - 60);
+    const y = rect.height - 40;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.dataset.vy = (0.4 + Math.random()*0.5).toFixed(2); // px per frame
+    el.dataset.swayOffset = (Math.random()*Math.PI*2).toFixed(2);
+    el.dataset.swayAmp = (10 + Math.random()*16).toFixed(1);
+    el.dataset.startX = x.toFixed(1);
+    el.dataset.t = '0';
+    const handler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      pop(el);
+    };
+    el.addEventListener('pointerdown', handler);
+    wrap.appendChild(el);
+    seeds.push(el);
+    // keep array bounded
+    if (seeds.length > 30) {
+      const old = seeds.shift();
+      if (old && old.parentNode) old.parentNode.removeChild(old);
+    }
+  }
+
+  function pop(el) {
+    if (el.classList.contains('popping')) return;
+    el.classList.add('popping');
+    Sound.pop();
+    setTimeout(() => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+      const idx = seeds.indexOf(el);
+      if (idx >= 0) seeds.splice(idx, 1);
+    }, 380);
+  }
+
+  let rafId = null;
+  function loop() {
+    if (!active) return;
+    const rect = wrap.getBoundingClientRect();
+    for (let i = seeds.length - 1; i >= 0; i--) {
+      const el = seeds[i];
+      if (el.classList.contains('popping')) continue;
+      const vy = parseFloat(el.dataset.vy);
+      const t = parseFloat(el.dataset.t) + 1;
+      el.dataset.t = t;
+      const startX = parseFloat(el.dataset.startX);
+      const swayOff = parseFloat(el.dataset.swayOffset);
+      const swayAmp = parseFloat(el.dataset.swayAmp);
+      const top = parseFloat(el.style.top) - vy;
+      const left = startX + Math.sin(t/40 + swayOff) * swayAmp;
+      el.style.top = top + 'px';
+      el.style.left = left + 'px';
+      if (top < -60) {
+        if (el.parentNode) el.parentNode.removeChild(el);
+        seeds.splice(i, 1);
+      }
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function start() {
+    if (active) return;
+    active = true;
+    if (spawnTimer) clearInterval(spawnTimer);
+    spawnTimer = setInterval(spawn, 1100);
+    // initial seeds
+    for (let i = 0; i < 4; i++) setTimeout(spawn, i * 250);
+    rafId = requestAnimationFrame(loop);
+  }
+  function stop() {
+    active = false;
+    if (spawnTimer) { clearInterval(spawnTimer); spawnTimer = null; }
+    if (rafId) cancelAnimationFrame(rafId);
+  }
+
+  document.addEventListener('game-activated', (e) => {
+    if (e.detail.game === 'pop') start(); else stop();
+  });
+})();
+
+
+/* =====================================================
+   GAME 2: Count the Ladybugs
+   ===================================================== */
+(() => {
+  const flower = document.getElementById('count-flower');
+  const bugsBox = document.getElementById('bugs-container');
+  const choicesBox = document.getElementById('count-choices');
+
+  function ladybugSVG() {
+    return `
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="20" cy="22" rx="14" ry="11" fill="#d96666"/>
+        <path d="M20,11 L20,33" stroke="#3a2a22" stroke-width="1.6"/>
+        <circle cx="20" cy="11" r="6" fill="#3a2a22"/>
+        <circle cx="17" cy="9" r="1.4" fill="#fff"/>
+        <circle cx="23" cy="9" r="1.4" fill="#fff"/>
+        <circle cx="14" cy="20" r="1.6" fill="#3a2a22"/>
+        <circle cx="26" cy="20" r="1.6" fill="#3a2a22"/>
+        <circle cx="15" cy="26" r="1.4" fill="#3a2a22"/>
+        <circle cx="25" cy="26" r="1.4" fill="#3a2a22"/>
+        <circle cx="20" cy="24" r="1.4" fill="#3a2a22"/>
+      </svg>
+    `;
+  }
+
+  // positions on the flower (roughly distributed around the yellow center)
+  const positions = [
+    {top:'35%', left:'40%'},
+    {top:'40%', left:'58%'},
+    {top:'55%', left:'45%'},
+    {top:'25%', left:'52%'},
+    {top:'50%', left:'30%'},
+    {top:'48%', left:'65%'},
+    {top:'62%', left:'55%'},
+  ];
+
+  function newRound() {
+    const n = 1 + Math.floor(Math.random() * 5); // 1–5
+    bugsBox.innerHTML = '';
+    const shuffled = positions.slice().sort(() => Math.random() - 0.5);
+    for (let i = 0; i < n; i++) {
+      const bug = document.createElement('div');
+      bug.className = 'count-bug';
+      bug.style.top = shuffled[i].top;
+      bug.style.left = shuffled[i].left;
+      bug.style.transform = 'translate(-50%,-50%) rotate(' + (Math.random()*40 - 20).toFixed(0) + 'deg)';
+      bug.innerHTML = ladybugSVG();
+      bugsBox.appendChild(bug);
+    }
+
+    // build 3 choices including the right answer
+    const choices = new Set([n]);
+    while (choices.size < 3) {
+      const c = 1 + Math.floor(Math.random()*5);
+      choices.add(c);
+    }
+    const arr = Array.from(choices).sort(() => Math.random() - 0.5);
+    choicesBox.innerHTML = '';
+    arr.forEach(v => {
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.textContent = v;
+      btn.addEventListener('click', () => {
+        if (v === n) {
+          btn.classList.add('right');
+          Sound.correct();
+          setTimeout(newRound, 900);
+        } else {
+          btn.classList.add('wrong');
+          Sound.wrong();
+          setTimeout(() => btn.classList.remove('wrong'), 400);
+        }
+      });
+      choicesBox.appendChild(btn);
+    });
+  }
+
+  document.addEventListener('game-activated', (e) => {
+    if (e.detail.game === 'count') newRound();
+  });
+  if (games[current].dataset.game === 'count') newRound();
+  // also ensure a round is set up on first load even if not active
+  newRound();
+})();
+
+
+/* =====================================================
+   GAME 3: Letter Petals
+   ===================================================== */
+(() => {
+  const target = document.getElementById('letter-target');
+  const grid = document.getElementById('letter-grid');
+  const speakBtn = document.getElementById('speakBtn');
+
+  const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+  const flowerColors = ['var(--petal)', 'var(--lavender)', 'var(--sun)', '#a8d8c5'];
+
+  function flowerSVG(color) {
+    return `
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="20" r="20" fill="${color}"/>
+        <circle cx="80" cy="50" r="20" fill="${color}"/>
+        <circle cx="50" cy="80" r="20" fill="${color}"/>
+        <circle cx="20" cy="50" r="20" fill="${color}"/>
+        <circle cx="28" cy="28" r="18" fill="${color}"/>
+        <circle cx="72" cy="28" r="18" fill="${color}"/>
+        <circle cx="28" cy="72" r="18" fill="${color}"/>
+        <circle cx="72" cy="72" r="18" fill="${color}"/>
+        <circle cx="50" cy="50" r="22" fill="#fff8e8"/>
+      </svg>
+    `;
+  }
+
+  let currentLetter = 'A';
+
+  function speak(letter) {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(letter);
+      u.rate = 0.85; u.pitch = 1.05; u.volume = 0.9;
+      window.speechSynthesis.speak(u);
+    } catch(e) {}
+  }
+
+  function newRound() {
+    const t = LETTERS[Math.floor(Math.random()*LETTERS.length)];
+    currentLetter = t;
+    target.textContent = t;
+
+    // 4 unique letters including target
+    const set = new Set([t]);
+    while (set.size < 4) {
+      const c = LETTERS[Math.floor(Math.random()*LETTERS.length)];
+      set.add(c);
+    }
+    const arr = Array.from(set).sort(() => Math.random() - 0.5);
+    grid.innerHTML = '';
+    arr.forEach((l, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'letter-flower';
+      btn.innerHTML = flowerSVG(flowerColors[i % flowerColors.length]) +
+        `<div class="lf-text">${l}</div>`;
+      btn.addEventListener('click', () => {
+        if (l === currentLetter) {
+          btn.classList.add('right');
+          Sound.correct();
+          setTimeout(() => { newRound(); }, 900);
+        } else {
+          btn.classList.add('wrong');
+          Sound.wrong();
+          setTimeout(() => btn.classList.remove('wrong'), 400);
+        }
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  speakBtn.addEventListener('click', () => speak(currentLetter));
+
+  document.addEventListener('game-activated', (e) => {
+    if (e.detail.game === 'letter') newRound();
+  });
+  newRound();
+})();
+
+
+/* =====================================================
+   GAME 4: Garden Puzzle (4 pieces, drag & drop)
+   ===================================================== */
+(() => {
+  const section = document.querySelector('.game[data-game="puzzle"]');
+  const board = document.getElementById('puzzle-board');
+  const tray = document.getElementById('puzzle-tray');
+  const doneEl = document.getElementById('puzzle-done');
+  const resetBtn = document.getElementById('puzzle-reset');
+
+  // The picture: a garden scene split into 4 quadrants.
+  function fullSceneSVG() {
+    return `
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" width="200" height="200">
+        <defs>
+          <linearGradient id="sky2" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#fdf6e3"/>
+            <stop offset="100%" stop-color="#e6f0d8"/>
+          </linearGradient>
+        </defs>
+        <rect width="200" height="200" fill="url(#sky2)"/>
+        <circle cx="160" cy="40" r="22" fill="#f5d76e"/>
+        <ellipse cx="40" cy="50" rx="22" ry="8" fill="#fff" opacity="0.85"/>
+        <path d="M0,140 Q60,120 120,135 T200,130 L200,200 L0,200 Z" fill="#9fc77a"/>
+        <path d="M0,165 Q60,150 120,160 T200,158 L200,200 L0,200 Z" fill="#7fae5d"/>
+        <g transform="translate(50,150)">
+          <rect x="-1.5" y="0" width="3" height="30" fill="#7fae5d"/>
+          <circle cx="0" cy="-3" r="7" fill="#f4a8c2"/>
+          <circle cx="-7" cy="-3" r="7" fill="#f4a8c2"/>
+          <circle cx="7" cy="-3" r="7" fill="#f4a8c2"/>
+          <circle cx="0" cy="-10" r="7" fill="#f4a8c2"/>
+          <circle cx="0" cy="4" r="7" fill="#f4a8c2"/>
+          <circle cx="0" cy="-3" r="4" fill="#f5d76e"/>
+        </g>
+        <g transform="translate(150,155)">
+          <rect x="-1.5" y="0" width="3" height="28" fill="#7fae5d"/>
+          <circle cx="0" cy="-3" r="7" fill="#c5a8d8"/>
+          <circle cx="-7" cy="-3" r="7" fill="#c5a8d8"/>
+          <circle cx="7" cy="-3" r="7" fill="#c5a8d8"/>
+          <circle cx="0" cy="-10" r="7" fill="#c5a8d8"/>
+          <circle cx="0" cy="4" r="7" fill="#c5a8d8"/>
+          <circle cx="0" cy="-3" r="4" fill="#f5d76e"/>
+        </g>
+        <g transform="translate(110,75)">
+          <ellipse cx="-8" cy="-3" rx="9" ry="6" fill="#f4a8c2"/>
+          <ellipse cx="8" cy="-3" rx="9" ry="6" fill="#f4a8c2"/>
+          <ellipse cx="-7" cy="6" rx="6" ry="5" fill="#c5a8d8"/>
+          <ellipse cx="7" cy="6" rx="6" ry="5" fill="#c5a8d8"/>
+          <ellipse cx="0" cy="0" rx="1.5" ry="6" fill="#4a3328"/>
+        </g>
+      </svg>
+    `;
+  }
+
+  function pieceHTML(quad) {
+    // quad: 0=TL, 1=TR, 2=BL, 3=BR
+    const offsetX = (quad % 2 === 0) ? 0 : -50;
+    const offsetY = (quad < 2) ? 0 : -50;
+    return `
+      <div style="position:absolute;inset:0;overflow:hidden;border-radius:8px;background:#fff;">
+        <div style="position:absolute;width:200%;height:200%;left:${offsetX}%;top:${offsetY}%;">
+          ${fullSceneSVG().replace('<svg', '<svg style="width:100%;height:100%;"')}
+        </div>
+      </div>
+    `;
+  }
+
+  let pieces = [];
+
+  // Pieces are appended INSIDE the puzzle section (position:absolute relative
+  // to the section), so they travel with the carousel.
+  function build() {
+    section.querySelectorAll('.puzzle-piece').forEach(p => p.remove());
+    doneEl.classList.remove('show');
+
+    const sectionRect = section.getBoundingClientRect();
+    const boardRect = board.getBoundingClientRect();
+    const trayRect = tray.getBoundingClientRect();
+
+    const boardLeft = boardRect.left - sectionRect.left;
+    const boardTop = boardRect.top - sectionRect.top;
+    const boardSize = boardRect.width;
+    const fullPieceSize = boardSize / 2;        // size when snapped in slot
+    const trayPieceSize = Math.min(fullPieceSize * 0.62, (trayRect.width - 24) / 4 - 4);
+
+    const trayLeft = trayRect.left - sectionRect.left;
+    const trayTop = trayRect.top - sectionRect.top;
+
+    // Compute tray slot x-positions: evenly across the tray
+    const trayInner = trayRect.width - 16;
+    const trayGap = (trayInner - trayPieceSize * 4) / 5;
+    pieces = [];
+    const order = [0,1,2,3].slice().sort(() => Math.random() - 0.5);
+    order.forEach((quad, i) => {
+      const el = document.createElement('div');
+      el.className = 'puzzle-piece';
+      el.style.position = 'absolute';
+      el.style.width = trayPieceSize + 'px';
+      el.style.height = trayPieceSize + 'px';
+      el.dataset.quad = quad;
+      el.dataset.fullSize = fullPieceSize;
+      // store target snap position
+      const slotX = boardLeft + (quad % 2) * fullPieceSize;
+      const slotY = boardTop + (quad < 2 ? 0 : 1) * fullPieceSize;
+      el.dataset.slotX = slotX;
+      el.dataset.slotY = slotY;
+      el.innerHTML = pieceHTML(quad);
+      const tx = trayLeft + 8 + trayGap + i * (trayPieceSize + trayGap);
+      const ty = trayTop + (trayRect.height - trayPieceSize) / 2;
+      el.style.left = tx + 'px';
+      el.style.top = ty + 'px';
+      section.appendChild(el);
+      pieces.push(el);
+      attachDrag(el);
+    });
+  }
+
+  function attachDrag(el) {
+    let startX, startY, origLeft, origTop, dragging = false, pid = null;
+    function onDown(e) {
+      if (el.classList.contains('placed')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      dragging = true;
+      el.classList.add('dragging');
+      pid = e.pointerId ?? 1;
+      try { el.setPointerCapture(pid); } catch(_){}
+      startX = e.clientX; startY = e.clientY;
+      origLeft = parseFloat(el.style.left);
+      origTop = parseFloat(el.style.top);
+    }
+    function onMove(e) {
+      if (!dragging) return;
+      e.preventDefault();
+      el.style.left = (origLeft + (e.clientX - startX)) + 'px';
+      el.style.top = (origTop + (e.clientY - startY)) + 'px';
+    }
+    function onUp(e) {
+      if (!dragging) return;
+      dragging = false;
+      el.classList.remove('dragging');
+      try { el.releasePointerCapture(pid); } catch(_){}
+      const targetX = parseFloat(el.dataset.slotX);
+      const targetY = parseFloat(el.dataset.slotY);
+      const fullSize = parseFloat(el.dataset.fullSize);
+      const curLeft = parseFloat(el.style.left);
+      const curTop = parseFloat(el.style.top);
+      const curW = parseFloat(el.style.width);
+      const centerDx = (curLeft + curW/2) - (targetX + fullSize/2);
+      const centerDy = (curTop + curW/2) - (targetY + fullSize/2);
+      const dist = Math.hypot(centerDx, centerDy);
+      if (dist < 60) {
+        el.style.transition = 'all 220ms ease';
+        el.style.width = fullSize + 'px';
+        el.style.height = fullSize + 'px';
+        el.style.left = targetX + 'px';
+        el.style.top = targetY + 'px';
+        el.classList.add('placed');
+        setTimeout(() => { el.style.transition = ''; }, 240);
+        Sound.pop();
+        checkDone();
+      }
+    }
+    el.addEventListener('pointerdown', onDown);
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerup', onUp);
+    el.addEventListener('pointercancel', onUp);
+  }
+
+  function checkDone() {
+    const allPlaced = pieces.every(p => p.classList.contains('placed'));
+    if (allPlaced) {
+      doneEl.classList.add('show');
+      setTimeout(() => Sound.happy(), 250);
+    }
+  }
+
+  resetBtn.addEventListener('click', () => {
+    pieces.forEach(p => p.remove());
+    build();
+  });
+
+  function init() {
+    pieces.forEach(p => p.remove());
+    pieces = [];
+    // Wait for the carousel transition to settle so layout rects are accurate.
+    setTimeout(() => build(), 480);
+  }
+
+  document.addEventListener('game-activated', (e) => {
+    if (e.detail.game === 'puzzle') init();
+  });
+
+  // If puzzle is the initial visible game, build it once on load.
+  window.addEventListener('load', () => {
+    if (games[current].dataset.game === 'puzzle') init();
+  });
+
+  // Rebuild on resize/orientation change while puzzle is visible.
+  let resizeT;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(() => {
+      if (games[current].dataset.game === 'puzzle') init();
+    }, 250);
+  });
+})();
+
+
+/* =====================================================
+   GAME 5: Butterfly Friend
+   ===================================================== */
+(() => {
+  const wrap = document.getElementById('butterfly-canvas');
+
+  function butterflySVG() {
+    return `
+      <svg viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg">
+        <g class="wings">
+          <!-- left wings -->
+          <ellipse cx="26" cy="34" rx="20" ry="14" fill="#f4a8c2"/>
+          <ellipse cx="28" cy="56" rx="14" ry="12" fill="#c5a8d8"/>
+          <circle cx="22" cy="32" r="3" fill="#fff"/>
+          <circle cx="20" cy="52" r="2" fill="#fff"/>
+          <!-- right wings -->
+          <ellipse cx="62" cy="34" rx="20" ry="14" fill="#f4a8c2"/>
+          <ellipse cx="60" cy="56" rx="14" ry="12" fill="#c5a8d8"/>
+          <circle cx="66" cy="32" r="3" fill="#fff"/>
+          <circle cx="68" cy="52" r="2" fill="#fff"/>
+        </g>
+        <!-- body -->
+        <ellipse cx="44" cy="44" rx="3.5" ry="18" fill="#4a3328"/>
+        <circle cx="44" cy="26" r="4.5" fill="#4a3328"/>
+        <line x1="44" y1="22" x2="40" y2="14" stroke="#4a3328" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="44" y1="22" x2="48" y2="14" stroke="#4a3328" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="40" cy="14" r="2" fill="#4a3328"/>
+        <circle cx="48" cy="14" r="2" fill="#4a3328"/>
+      </svg>
+    `;
+  }
+
+  const el = document.createElement('div');
+  el.className = 'butterfly';
+  el.innerHTML = butterflySVG();
+  wrap.appendChild(el);
+
+  function place(x, y) {
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+  }
+
+  function randomSpot() {
+    const r = wrap.getBoundingClientRect();
+    const pad = 60;
+    const x = pad + Math.random() * (r.width - pad*2 - 88);
+    const y = 60 + Math.random() * (r.height - pad*2 - 88);
+    return {x, y};
+  }
+
+  let driftTimer = null;
+  let active = false;
+  function startDrift() {
+    if (driftTimer) clearInterval(driftTimer);
+    driftTimer = setInterval(() => {
+      if (!active) return;
+      const {x,y} = randomSpot();
+      place(x, y);
+    }, 3500);
+  }
+
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    el.classList.add('fast');
+    Sound.happy();
+    // burst of stars
+    for (let i = 0; i < 4; i++) {
+      const b = document.createElement('div');
+      b.className = 'happy-burst';
+      const r = el.getBoundingClientRect();
+      const wr = wrap.getBoundingClientRect();
+      b.style.left = (r.left - wr.left + 44 + (Math.random()*40 - 20)) + 'px';
+      b.style.top  = (r.top - wr.top + 44 + (Math.random()*20 - 10)) + 'px';
+      b.textContent = ['✨','🌸','💛','🌼'][i % 4];
+      wrap.appendChild(b);
+      setTimeout(() => b.remove(), 1200);
+    }
+    setTimeout(() => el.classList.remove('fast'), 800);
+    const {x,y} = randomSpot();
+    place(x, y);
+  });
+
+  function start() {
+    active = true;
+    // initial position
+    setTimeout(() => {
+      const {x,y} = randomSpot();
+      place(x, y);
+    }, 50);
+    startDrift();
+  }
+  function stop() {
+    active = false;
+    if (driftTimer) { clearInterval(driftTimer); driftTimer = null; }
+  }
+
+  document.addEventListener('game-activated', (e) => {
+    if (e.detail.game === 'butterfly') start();
+    else stop();
+  });
+
+  // initial placement so it isn't piled at (0,0)
+  window.addEventListener('load', () => {
+    const r = wrap.getBoundingClientRect();
+    place(r.width/2 - 44, r.height/2 - 44);
+  });
+})();
+
+/* =====================================================
+   GAME 6: Coloring Garden
+   ===================================================== */
+(() => {
+  const colorSection = document.querySelector('.game[data-game="color"]');
+  const scene = document.getElementById('coloring-scene');
+  const wheel = document.getElementById('color-wheel');
+  const stickerRow = document.getElementById('sticker-row');
+  const stickerLayer = document.getElementById('stickers-layer');
+  const tabs = colorSection.querySelectorAll('.tab');
+  const clearBtn = document.getElementById('color-clear');
+
+  // 12 garden-friendly colors (pinks, oranges, yellows, greens, blues, purples, brown)
+  const colors = [
+    '#f4a8c2', '#e88aa9', '#d96666',
+    '#fdb462', '#f5d76e', '#e9c44a',
+    '#a8d8c5', '#9fc77a', '#7fae5d',
+    '#a8c5e8', '#c5a8d8', '#7b5b3d'
+  ];
+  let currentColor = colors[0];
+
+  const stickerKeys = ['flower', 'butterfly', 'ladybug', 'bee', 'leaf', 'star', 'heart', 'sun'];
+  let currentSticker = stickerKeys[0];
+  let mode = 'color';
+
+  // Build color wheel
+  colors.forEach((c, i) => {
+    const s = document.createElement('button');
+    s.className = 'swatch' + (i === 0 ? ' active' : '');
+    s.style.background = c;
+    s.dataset.color = c;
+    s.setAttribute('aria-label', 'Color ' + c);
+    s.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentColor = c;
+      wheel.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+      Sound.tone(600 + i * 25, 0.15, 'sine', 0.08);
+    });
+    wheel.appendChild(s);
+  });
+
+  // Build sticker tray — references symbols defined at top of <body>
+  stickerKeys.forEach((k, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'sticker-pick' + (i === 0 ? ' active' : '');
+    btn.dataset.sticker = k;
+    btn.setAttribute('aria-label', 'Sticker ' + k);
+    btn.innerHTML = `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><use href="#stk-${k}"/></svg>`;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentSticker = k;
+      stickerRow.querySelectorAll('.sticker-pick').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+      Sound.tone(500, 0.15, 'sine', 0.08);
+    });
+    stickerRow.appendChild(btn);
+  });
+
+  // Mode tabs
+  tabs.forEach(t => {
+    t.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mode = t.dataset.mode;
+      tabs.forEach(x => x.classList.toggle('active', x === t));
+      wheel.style.display = (mode === 'color') ? '' : 'none';
+      stickerRow.style.display = (mode === 'sticker') ? '' : 'none';
+      Sound.gentle();
+    });
+  });
+
+  // Convert a pointer event into the SVG's viewBox coordinates
+  function svgPoint(evt) {
+    const rect = scene.getBoundingClientRect();
+    const vb = scene.viewBox.baseVal;
+    // Account for preserveAspectRatio="xMidYMid meet" (uniform scale + centering)
+    const scale = Math.min(rect.width / vb.width, rect.height / vb.height);
+    const drawnW = vb.width * scale;
+    const drawnH = vb.height * scale;
+    const offX = (rect.width - drawnW) / 2;
+    const offY = (rect.height - drawnH) / 2;
+    const x = (evt.clientX - rect.left - offX) / scale;
+    const y = (evt.clientY - rect.top - offY) / scale;
+    return { x, y };
+  }
+
+  function placeSticker(key, x, y) {
+    const size = 56;
+    const useEl = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    useEl.setAttribute('href', '#stk-' + key);
+    // Fallback for older renderers
+    useEl.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#stk-' + key);
+    useEl.setAttribute('x', x - size / 2);
+    useEl.setAttribute('y', y - size / 2);
+    useEl.setAttribute('width', size);
+    useEl.setAttribute('height', size);
+    useEl.setAttribute('class', 'placed-sticker');
+    stickerLayer.appendChild(useEl);
+    Sound.tone(720, 0.22, 'sine', 0.12);
+  }
+
+  // Scene tap handler — fills regions in color mode, places/removes stickers in sticker mode
+  scene.addEventListener('click', (e) => {
+    const target = e.target;
+    // Tapping a previously-placed sticker removes it (any mode)
+    if (target.tagName && target.tagName.toLowerCase() === 'use') {
+      e.stopPropagation();
+      target.remove();
+      Sound.tone(420, 0.16, 'sine', 0.07);
+      return;
+    }
+    if (mode === 'color') {
+      if (target.classList && target.classList.contains('fillable')) {
+        target.setAttribute('fill', currentColor);
+        Sound.pop();
+      }
+    } else if (mode === 'sticker') {
+      const pt = svgPoint(e);
+      placeSticker(currentSticker, pt.x, pt.y);
+    }
+  });
+
+  clearBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    scene.querySelectorAll('.fillable').forEach(el => {
+      el.setAttribute('fill', el.dataset.default || '#fff8ec');
+    });
+    stickerLayer.innerHTML = '';
+    Sound.gentle();
+  });
+})();
+
+
+/* Prevent iOS double-tap zoom */
+let lastTouch = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTouch <= 320) e.preventDefault();
+  lastTouch = now;
+}, { passive: false });
+
+/* Prevent pull-to-refresh / extra gestures */
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+</script>
+</body>
+</html>
