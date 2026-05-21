@@ -871,56 +871,24 @@
       <div class="color-stage">
         <div class="color-canvas-wrap">
           <svg class="coloring" id="coloring-scene" viewBox="0 0 400 380" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-            <!-- Sky -->
-            <rect class="fillable" data-default="#fff8ec" id="c-sky" x="0" y="0" width="400" height="260" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <!-- Sun -->
-            <circle class="fillable" data-default="#fff8ec" id="c-sun" cx="58" cy="56" r="30" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <!-- Cloud -->
-            <path class="fillable" data-default="#fff8ec" id="c-cloud" d="M270,62 Q270,46 290,46 Q300,38 312,46 Q330,42 332,60 Q340,62 338,74 Q330,80 318,76 Q304,82 290,76 Q272,78 270,62 Z" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <!-- Grass back hill -->
-            <path class="fillable" data-default="#fff8ec" id="c-grass-back" d="M0,265 Q100,245 200,258 T400,250 L400,380 L0,380 Z" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <!-- Grass front -->
-            <path class="fillable" data-default="#fff8ec" id="c-grass-front" d="M0,310 Q120,292 220,302 T400,298 L400,380 L0,380 Z" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-
-            <!-- Flower (center) -->
-            <rect class="fillable" data-default="#fff8ec" id="c-stem" x="194" y="190" width="12" height="120" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <path class="fillable" data-default="#fff8ec" id="c-leaf-l" d="M200,236 Q160,224 140,202 Q172,218 200,236 Z" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <path class="fillable" data-default="#fff8ec" id="c-leaf-r" d="M200,256 Q240,244 260,222 Q228,238 200,256 Z" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <!-- 6 petals around (200,178) -->
-            <g transform="rotate(0 200 178)"><ellipse class="fillable" data-default="#fff8ec" id="c-petal-1" cx="200" cy="138" rx="22" ry="32" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/></g>
-            <g transform="rotate(60 200 178)"><ellipse class="fillable" data-default="#fff8ec" id="c-petal-2" cx="200" cy="138" rx="22" ry="32" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/></g>
-            <g transform="rotate(120 200 178)"><ellipse class="fillable" data-default="#fff8ec" id="c-petal-3" cx="200" cy="138" rx="22" ry="32" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/></g>
-            <g transform="rotate(180 200 178)"><ellipse class="fillable" data-default="#fff8ec" id="c-petal-4" cx="200" cy="138" rx="22" ry="32" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/></g>
-            <g transform="rotate(240 200 178)"><ellipse class="fillable" data-default="#fff8ec" id="c-petal-5" cx="200" cy="138" rx="22" ry="32" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/></g>
-            <g transform="rotate(300 200 178)"><ellipse class="fillable" data-default="#fff8ec" id="c-petal-6" cx="200" cy="138" rx="22" ry="32" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/></g>
-            <circle class="fillable" data-default="#fff8ec" id="c-flower-center" cx="200" cy="178" r="20" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-
-            <!-- Butterfly (top-right area) -->
-            <ellipse class="fillable" data-default="#fff8ec" id="c-wing-tl" cx="305" cy="160" rx="20" ry="15" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <ellipse class="fillable" data-default="#fff8ec" id="c-wing-tr" cx="345" cy="160" rx="20" ry="15" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <ellipse class="fillable" data-default="#fff8ec" id="c-wing-bl" cx="308" cy="190" rx="15" ry="13" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <ellipse class="fillable" data-default="#fff8ec" id="c-wing-br" cx="342" cy="190" rx="15" ry="13" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <ellipse class="fillable" data-default="#fff8ec" id="c-bfly-body" cx="325" cy="175" rx="3.5" ry="20" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-
-            <!-- Mushroom (bottom-left) -->
-            <path class="fillable" data-default="#fff8ec" id="c-mush-cap" d="M40,278 Q40,238 80,238 Q120,238 120,278 Z" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <circle class="fillable" data-default="#fff8ec" id="c-mush-spot-1" cx="60" cy="262" r="5" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <circle class="fillable" data-default="#fff8ec" id="c-mush-spot-2" cx="84" cy="252" r="6" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <circle class="fillable" data-default="#fff8ec" id="c-mush-spot-3" cx="104" cy="266" r="5" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-            <rect class="fillable" data-default="#fff8ec" id="c-mush-stem" x="64" y="278" width="32" height="28" fill="#fff8ec" stroke="#4a3328" stroke-width="2"/>
-
-            <!-- Stickers layer -->
+            <!-- generated coloring scene -->
+            <g id="scene-layer"></g>
+            <!-- free-hand drawings (above the scene, below stickers) -->
+            <g id="draw-layer"></g>
+            <!-- placed stickers (on top) -->
             <g id="stickers-layer"></g>
           </svg>
         </div>
         <div class="color-tools">
           <div class="tool-tabs">
-            <button class="tab active" data-mode="color">🎨 Colors</button>
+            <button class="tab active" data-mode="fill">🎨 Fill</button>
+            <button class="tab" data-mode="draw">✏️ Draw</button>
             <button class="tab" data-mode="sticker">✨ Stickers</button>
           </div>
           <div class="color-wheel" id="color-wheel"></div>
           <div class="sticker-row" id="sticker-row" style="display:none;"></div>
           <div class="color-actions">
+            <button class="reset-btn" id="color-newscene">🌱 New garden</button>
             <button class="reset-btn" id="color-clear">↺ Start over</button>
           </div>
         </div>
@@ -1725,7 +1693,8 @@ goTo(0, true);
 
   const stickerKeys = ['flower', 'butterfly', 'ladybug', 'bee', 'leaf', 'star', 'heart', 'sun'];
   let currentSticker = stickerKeys[0];
-  let mode = 'color';
+  let mode = 'fill';
+  const drawLayer = document.getElementById('draw-layer');
 
   // Build color wheel
   colors.forEach((c, i) => {
@@ -1767,7 +1736,8 @@ goTo(0, true);
       e.stopPropagation();
       mode = t.dataset.mode;
       tabs.forEach(x => x.classList.toggle('active', x === t));
-      wheel.style.display = (mode === 'color') ? '' : 'none';
+      // Color wheel is used by both Fill and Draw modes
+      wheel.style.display = (mode === 'fill' || mode === 'draw') ? '' : 'none';
       stickerRow.style.display = (mode === 'sticker') ? '' : 'none';
       Sound.gentle();
     });
@@ -1803,17 +1773,19 @@ goTo(0, true);
     Sound.tone(720, 0.22, 'sine', 0.12);
   }
 
-  // Scene tap handler — fills regions in color mode, places/removes stickers in sticker mode
+  // Scene tap handler — fills regions in fill mode, places/removes stickers in sticker mode.
+  // Draw mode is handled separately via pointer events below.
   scene.addEventListener('click', (e) => {
+    if (mode === 'draw') return;
     const target = e.target;
-    // Tapping a previously-placed sticker removes it (any mode)
+    // Tapping a previously-placed sticker removes it (any non-draw mode)
     if (target.tagName && target.tagName.toLowerCase() === 'use') {
       e.stopPropagation();
       target.remove();
       Sound.tone(420, 0.16, 'sine', 0.07);
       return;
     }
-    if (mode === 'color') {
+    if (mode === 'fill') {
       if (target.classList && target.classList.contains('fillable')) {
         target.setAttribute('fill', currentColor);
         Sound.pop();
@@ -1824,14 +1796,309 @@ goTo(0, true);
     }
   });
 
+  // ===== Drawing (Draw mode) =====
+  let currentPath = null;
+  let lastPt = null;
+
+  scene.addEventListener('pointerdown', (e) => {
+    if (mode !== 'draw') return;
+    e.preventDefault();
+    const pt = svgPoint(e);
+    lastPt = pt;
+    currentPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    currentPath.setAttribute('d', `M${pt.x.toFixed(1)},${pt.y.toFixed(1)}`);
+    currentPath.setAttribute('stroke', currentColor);
+    currentPath.setAttribute('stroke-width', '5');
+    currentPath.setAttribute('stroke-linecap', 'round');
+    currentPath.setAttribute('stroke-linejoin', 'round');
+    currentPath.setAttribute('fill', 'none');
+    currentPath.setAttribute('class', 'drawn-stroke');
+    drawLayer.appendChild(currentPath);
+    try { scene.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+
+  scene.addEventListener('pointermove', (e) => {
+    if (mode !== 'draw' || !currentPath) return;
+    e.preventDefault();
+    const pt = svgPoint(e);
+    // Throttle: skip if movement is tiny (avoids huge d strings)
+    if (lastPt) {
+      const dx = pt.x - lastPt.x, dy = pt.y - lastPt.y;
+      if (dx*dx + dy*dy < 1.5) return;
+    }
+    lastPt = pt;
+    const d = currentPath.getAttribute('d') + ` L${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+    currentPath.setAttribute('d', d);
+  });
+
+  function endStroke(e) {
+    if (!currentPath) return;
+    // If user just tapped (no movement), draw a tiny dot so something shows up
+    const d = currentPath.getAttribute('d');
+    if (!d.includes(' L')) {
+      currentPath.setAttribute('d', d + ' l0.1,0');
+    }
+    Sound.tone(560, 0.10, 'sine', 0.05);
+    currentPath = null;
+    lastPt = null;
+    if (e && e.pointerId != null) {
+      try { scene.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+  }
+  scene.addEventListener('pointerup', endStroke);
+  scene.addEventListener('pointercancel', endStroke);
+  scene.addEventListener('pointerleave', endStroke);
+
   clearBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     scene.querySelectorAll('.fillable').forEach(el => {
       el.setAttribute('fill', el.dataset.default || '#fff8ec');
     });
     stickerLayer.innerHTML = '';
+    drawLayer.innerHTML = '';
     Sound.gentle();
   });
+
+  // =====================================================
+  //  Scene generator — composes a fresh garden from a small
+  //  library of "artifacts" (sun, clouds, hills, flowers,
+  //  trees, mushrooms, butterflies, bees, ladybugs, etc).
+  //  Every artifact is fillable so the kid can color it in.
+  // =====================================================
+  const sceneLayer = document.getElementById('scene-layer');
+  const DEFAULT_FILL = '#fff8ec';
+  const OUTLINE = '#4a3328';
+  const VB_W = 400, VB_H = 380;
+
+  function shape(tag, attrs) {
+    const merged = Object.assign({
+      class: 'fillable',
+      'data-default': DEFAULT_FILL,
+      fill: DEFAULT_FILL,
+      stroke: OUTLINE,
+      'stroke-width': 2,
+      'stroke-linejoin': 'round',
+      'stroke-linecap': 'round'
+    }, attrs);
+    const a = Object.entries(merged)
+      .filter(([_, v]) => v !== undefined && v !== null)
+      .map(([k, v]) => `${k}="${v}"`).join(' ');
+    return `<${tag} ${a}/>`;
+  }
+  const rnd = (min, max) => min + Math.random() * (max - min);
+  const rndI = (min, max) => Math.floor(rnd(min, max + 1));
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+  // --- Sky artifacts ---
+  function sun(cx, cy, r, withRays) {
+    let s = shape('circle', { cx, cy, r });
+    if (withRays) {
+      for (let i = 0; i < 8; i++) {
+        const ang = i * (Math.PI / 4);
+        const r1 = r + 4, r2 = r + 14;
+        const ax = cx + Math.cos(ang) * r1, ay = cy + Math.sin(ang) * r1;
+        const bx = cx + Math.cos(ang) * r2, by = cy + Math.sin(ang) * r2;
+        const perp = ang + Math.PI / 2;
+        const w = 3;
+        const p1x = ax + Math.cos(perp) * w, p1y = ay + Math.sin(perp) * w;
+        const p2x = ax - Math.cos(perp) * w, p2y = ay - Math.sin(perp) * w;
+        const d = `M${p1x.toFixed(1)},${p1y.toFixed(1)} L${bx.toFixed(1)},${by.toFixed(1)} L${p2x.toFixed(1)},${p2y.toFixed(1)} Z`;
+        s += shape('path', { d });
+      }
+    }
+    return s;
+  }
+  function moon(cx, cy, r, crescent) {
+    if (crescent) {
+      const off = r * 0.45;
+      const d = `M${cx + off*0.3},${cy - r} A${r},${r} 0 1,0 ${cx + off*0.3},${cy + r} A${r*0.85},${r*0.85} 0 1,1 ${cx + off*0.3},${cy - r} Z`;
+      return shape('path', { d });
+    }
+    return shape('circle', { cx, cy, r });
+  }
+  function cloud(cx, cy, scale) {
+    return shape('circle', { cx: cx - 16*scale, cy, r: 12*scale })
+         + shape('circle', { cx: cx + 16*scale, cy, r: 12*scale })
+         + shape('circle', { cx, cy: cy - 8*scale, r: 16*scale });
+  }
+  function starShape(cx, cy, size) {
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const a = (i * 36 - 90) * Math.PI / 180;
+      const rr = (i % 2 === 0) ? size : size * 0.45;
+      pts.push(`${(cx + Math.cos(a)*rr).toFixed(1)},${(cy + Math.sin(a)*rr).toFixed(1)}`);
+    }
+    return shape('polygon', { points: pts.join(' ') });
+  }
+
+  // --- Terrain ---
+  function hillPath(yL, yMid, yR) {
+    return shape('path', { d: `M0,${yL} Q200,${yMid} 400,${yR} L400,380 L0,380 Z` });
+  }
+
+  // --- Plants ---
+  function flower(cx, baseY, scale, petals) {
+    const stemLen = rnd(28, 50) * scale;
+    const headY = baseY - stemLen;
+    const stemW = Math.max(2, 3 * scale);
+    let s = shape('rect', { x: cx - stemW/2, y: headY, width: stemW, height: stemLen });
+    if (Math.random() < 0.65) {
+      const ly = headY + stemLen * rnd(0.35, 0.7);
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const lw = rnd(11, 16) * scale, lh = rnd(5, 8) * scale;
+      const d = `M${cx},${ly} Q${cx + side*lw*0.5},${ly - lh*0.9} ${cx + side*lw},${ly + lh*0.2} Q${cx + side*lw*0.5},${ly + lh*0.7} ${cx},${ly} Z`;
+      s += shape('path', { d });
+    }
+    const pRX = rnd(4.5, 6) * scale, pRY = rnd(9, 12) * scale;
+    const offsetY = pRY * 0.95;
+    for (let i = 0; i < petals; i++) {
+      const ang = i * (360 / petals);
+      s += `<g transform="rotate(${ang.toFixed(2)} ${cx} ${headY})">` +
+           shape('ellipse', { cx, cy: headY - offsetY, rx: pRX, ry: pRY }) +
+           '</g>';
+    }
+    s += shape('circle', { cx, cy: headY, r: rnd(4.5, 6.5) * scale });
+    return s;
+  }
+  function mushroom(cx, baseY, scale) {
+    const capW = rnd(14, 22) * scale;
+    const capH = rnd(10, 14) * scale;
+    let s = shape('path', {
+      d: `M${cx - capW},${baseY} Q${cx - capW},${baseY - capH} ${cx},${baseY - capH} Q${cx + capW},${baseY - capH} ${cx + capW},${baseY} Z`
+    });
+    const stemW = capW * 0.55, stemH = rnd(10, 16) * scale;
+    s += shape('rect', { x: cx - stemW/2, y: baseY, width: stemW, height: stemH });
+    const n = rndI(2, 3);
+    for (let i = 0; i < n; i++) {
+      s += shape('circle', {
+        cx: cx + rnd(-capW*0.65, capW*0.65),
+        cy: baseY - capH * rnd(0.35, 0.75),
+        r: rnd(1.6, 2.6) * scale
+      });
+    }
+    return s;
+  }
+  function tree(cx, baseY, scale) {
+    const trunkW = 8 * scale, trunkH = rnd(28, 36) * scale;
+    let s = shape('rect', { x: cx - trunkW/2, y: baseY - trunkH, width: trunkW, height: trunkH });
+    const r = rnd(20, 26) * scale;
+    s += shape('circle', { cx, cy: baseY - trunkH - r * 0.55, r });
+    s += shape('circle', { cx: cx - r * 0.75, cy: baseY - trunkH - r * 0.3, r: r * 0.7 });
+    s += shape('circle', { cx: cx + r * 0.75, cy: baseY - trunkH - r * 0.3, r: r * 0.7 });
+    return s;
+  }
+  function bush(cx, baseY, scale) {
+    const r = rnd(10, 14) * scale;
+    return shape('circle', { cx, cy: baseY - r * 0.55, r })
+         + shape('circle', { cx: cx - r * 0.85, cy: baseY - r * 0.35, r: r * 0.7 })
+         + shape('circle', { cx: cx + r * 0.85, cy: baseY - r * 0.35, r: r * 0.7 });
+  }
+
+  // --- Critters ---
+  function butterflyArt(cx, cy, scale) {
+    return shape('ellipse', { cx: cx - 9*scale, cy: cy - 5*scale, rx: 9*scale, ry: 7*scale })
+         + shape('ellipse', { cx: cx + 9*scale, cy: cy - 5*scale, rx: 9*scale, ry: 7*scale })
+         + shape('ellipse', { cx: cx - 7*scale, cy: cy + 7*scale, rx: 7*scale, ry: 6*scale })
+         + shape('ellipse', { cx: cx + 7*scale, cy: cy + 7*scale, rx: 7*scale, ry: 6*scale })
+         + shape('ellipse', { cx, cy, rx: 1.6*scale, ry: 11*scale });
+  }
+  function beeArt(cx, cy, scale) {
+    return shape('ellipse', { cx, cy, rx: 9*scale, ry: 6*scale })
+         + shape('ellipse', { cx: cx - 4*scale, cy: cy - 6*scale, rx: 5*scale, ry: 4*scale })
+         + shape('ellipse', { cx: cx + 4*scale, cy: cy - 6*scale, rx: 5*scale, ry: 4*scale });
+  }
+  function ladybugArt(cx, cy, scale) {
+    const w = 10 * scale, h = 8 * scale;
+    let s = shape('path', { d: `M${cx - w},${cy} Q${cx - w},${cy - h} ${cx},${cy - h} Q${cx + w},${cy - h} ${cx + w},${cy} Z` });
+    s += shape('circle', { cx: cx - 4*scale, cy: cy - 4*scale, r: 1.6*scale });
+    s += shape('circle', { cx: cx + 4*scale, cy: cy - 4*scale, r: 1.6*scale });
+    s += shape('circle', { cx, cy: cy - 6*scale, r: 1.6*scale });
+    return s;
+  }
+  function snail(cx, baseY, scale) {
+    const r = 9 * scale;
+    let s = shape('circle', { cx: cx - 4*scale, cy: baseY - r, r });
+    s += shape('circle', { cx: cx - 4*scale, cy: baseY - r, r: r * 0.5 });
+    s += shape('path', {
+      d: `M${cx - 14*scale},${baseY} Q${cx - 14*scale},${baseY - 4*scale} ${cx + 4*scale},${baseY - 4*scale} L${cx + 10*scale},${baseY} Z`
+    });
+    s += shape('circle', { cx: cx + 8*scale, cy: baseY - 9*scale, r: 1.3*scale });
+    return s;
+  }
+
+  // --- Scene composer ---
+  function generateScene() {
+    let svg = '';
+    // sky background
+    svg += shape('rect', { x: 0, y: 0, width: VB_W, height: 280 });
+
+    const isDay = Math.random() < 0.65;
+    if (isDay) {
+      svg += sun(rnd(40, 360), rnd(28, 80), rnd(20, 32), Math.random() < 0.7);
+      const n = rndI(1, 3);
+      for (let i = 0; i < n; i++) svg += cloud(rnd(50, 350), rnd(40, 130), rnd(0.8, 1.4));
+    } else {
+      svg += moon(rnd(60, 340), rnd(30, 80), rnd(16, 24), Math.random() < 0.6);
+      const ns = rndI(3, 7);
+      for (let i = 0; i < ns; i++) svg += starShape(rnd(20, 380), rnd(20, 140), rnd(4, 7));
+      if (Math.random() < 0.4) svg += cloud(rnd(60, 340), rnd(50, 130), rnd(0.7, 1.1));
+    }
+
+    // hills
+    svg += hillPath(rnd(240, 270), rnd(220, 250), rnd(240, 270));
+    if (Math.random() < 0.75) svg += hillPath(rnd(290, 308), rnd(268, 292), rnd(290, 308));
+
+    // plants (with anti-overlap)
+    const groundY = 312;
+    const minSpacing = 38;
+    const positions = [];
+    let attempts = 0;
+    const target = rndI(4, 7);
+    while (positions.length < target && attempts < 80) {
+      attempts++;
+      const x = rnd(28, VB_W - 28);
+      if (positions.every(p => Math.abs(p - x) > minSpacing)) positions.push(x);
+    }
+    positions.forEach(x => {
+      const r = Math.random();
+      const by = groundY + rnd(-4, 6);
+      if (r < 0.55)      svg += flower(x, by, rnd(0.85, 1.45), pick([5, 5, 6, 6, 7, 8]));
+      else if (r < 0.75) svg += mushroom(x, by, rnd(0.75, 1.2));
+      else if (r < 0.90) svg += tree(x, by, rnd(0.85, 1.3));
+      else               svg += bush(x, by, rnd(0.9, 1.4));
+    });
+
+    // critters
+    const nc = rndI(1, 3);
+    for (let i = 0; i < nc; i++) {
+      const cx = rnd(45, VB_W - 45);
+      const cy = rnd(130, 235);
+      const sc = rnd(0.85, 1.25);
+      const r = Math.random();
+      if (r < 0.5)      svg += butterflyArt(cx, cy, sc);
+      else if (r < 0.8) svg += beeArt(cx, cy, sc);
+      else              svg += ladybugArt(cx, cy, sc);
+    }
+    if (Math.random() < 0.25) svg += snail(rnd(50, 350), groundY + 2, rnd(0.8, 1.15));
+
+    return svg;
+  }
+
+  function newScene() {
+    sceneLayer.innerHTML = generateScene();
+    stickerLayer.innerHTML = '';
+    drawLayer.innerHTML = '';
+  }
+
+  const newSceneBtn = document.getElementById('color-newscene');
+  newSceneBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    newScene();
+    Sound.chime([523, 659, 784], 70, 0.25);
+  });
+
+  // Render an initial scene so there's something to color the first time.
+  newScene();
 })();
 
 
