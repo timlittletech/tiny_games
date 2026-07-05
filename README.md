@@ -4,20 +4,28 @@ A small suite of calm, garden-themed games for kids ages 1–7. One HTML file, n
 
 ## Games
 
-- **Pop the Fluff** (ages 1–3) — Tap floating dandelion seeds to pop them.
+- **Pop the Fluff** (ages 1–3) — Tap floating dandelion seeds to pop them. Slow / Medium / Fast speed selector (choice remembered).
 - **Butterfly Friend** (all ages) — Tap a calm butterfly to make it flutter to a new spot.
-- **Coloring Garden** (all ages) — Tap regions to fill with color from a 12-color wheel, or stamp stickers (ladybug, bee, butterfly, flower, leaf, star, heart, sun).
-- **Garden Puzzle** (ages 4–7) — Drag four pieces into place to complete the picture.
+- **Coloring Garden** (all ages) — Tap regions to fill with color from a 12-color wheel, or stamp stickers (ladybug, bee, butterfly, flower, leaf, star, heart, sun). Tiny shapes are merged into their parent so little fingers can't miss.
+- **Garden Puzzle** (ages 4–7) — Drag four pieces into place to complete the picture. Four rotating scenes; "Mix again" shows a new one.
 - **Count Ladybugs** (ages 4–7) — Count the bugs on the flower and tap the right number.
 - **Find the Letter** (ages 4–7) — Tap the flower with the matching letter. Includes spoken letter playback.
+- **Story Time** (ages 4–6) — Five short decodable stories with a read-along karaoke highlight; each sentence is read aloud while its words light up in sequence. Tap any word to hear it again.
 
 ## Design choices
 
 - Calm but cheerful pastel palette, no flashing animations.
 - Gentle Web Audio sine-wave chimes, with a 🔊 mute toggle (preference persists in localStorage).
 - Touch-first: swipe between games, big tap targets, locked against pinch-zoom and pull-to-refresh.
-- Safe-area aware (works with iPad/iPhone notch).
+- Safe-area aware (works with iPad/iPhone notch); portrait and landscape.
 - No external libraries, no network calls, no analytics.
+
+## Parental play timer
+
+The ⏱️ button (top bar) lets a grown-up set a play time (5–30 min) or turn it
+off. When the time is up the whole app pauses behind a lock screen and requires
+an adult to solve a simple addition problem before setting a new time. The
+deadline is stored so reloading the page can't skip it.
 
 ## Weekly game rotation
 
