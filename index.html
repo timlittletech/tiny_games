@@ -20,6 +20,8 @@
 <!-- Android / PWA -->
 <link rel="manifest" href="manifest.webmanifest">
 <style>
+  /* The [hidden] attribute must win over class rules that set display. */
+  [hidden] { display: none !important; }
   :root {
     --sky-top:#fdf6e3;
     --sky-bot:#e6f0d8;
@@ -525,6 +527,65 @@
 
   .fillable { cursor:pointer; }
   .placed-sticker { cursor:pointer; pointer-events:auto; }
+
+  /* ==== Game 7: Story Time (read-along) ==== */
+  .read-stage {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    padding: calc(max(env(safe-area-inset-top),10px) + 92px) 16px max(env(safe-area-inset-bottom),16px);
+  }
+  .read-picker { display:grid; grid-template-columns: repeat(2,1fr); gap:12px; align-content:start; }
+  .story-pick {
+    display:flex; align-items:center; gap:10px; padding:14px; border:none; border-radius:18px;
+    background: rgba(255,255,255,0.85); box-shadow:0 3px 8px rgba(74,51,40,0.10);
+    font-family:inherit; font-weight:700; font-size:16px; color:var(--ink); cursor:pointer; text-align:left;
+  }
+  .story-pick:active { transform: translateY(2px); }
+  .story-pick .emoji { font-size:30px; line-height:1; }
+  .read-view { display:flex; flex-direction:column; align-items:center; height:100%; gap:14px; }
+  .read-pic { font-size:72px; line-height:1; }
+  .read-text {
+    font-size: clamp(22px,5.5vw,30px); line-height:1.75; font-weight:700; color:var(--ink);
+    text-align:center; max-width:640px;
+  }
+  .read-text .w { padding:1px 4px; border-radius:7px; transition: background 120ms, color 120ms; cursor:pointer; }
+  .read-text .w.on { background: var(--sun); color:#4a3328; }
+  .read-actions { margin-top:auto; display:flex; gap:10px; }
+  .read-btn {
+    border:none; border-radius:999px; padding:10px 20px; font-family:inherit; font-weight:700;
+    font-size:15px; background: rgba(255,255,255,0.9); color:var(--ink); cursor:pointer;
+    box-shadow:0 2px 5px rgba(74,51,40,0.12);
+  }
+  .read-btn:active { transform: translateY(2px); }
+  .read-btn.primary { background: var(--petal); color:#4a3328; }
+
+  /* ==== Universal play timer ==== */
+  #timerBtn.on { background: var(--petal); box-shadow:0 0 0 3px rgba(232,138,169,0.4); }
+  .timer-lock {
+    position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+    background: rgba(74,51,40,0.55); padding:20px;
+  }
+  .timer-card {
+    background:#fff8ec; border-radius:24px; padding:26px 24px; width:min(92vw,360px);
+    text-align:center; box-shadow:0 14px 40px rgba(0,0,0,0.3);
+  }
+  .timer-emoji { font-size:44px; }
+  .timer-card h2 { margin:6px 0 2px; font-size:22px; color:var(--ink); }
+  .timer-sub { font-size:14px; color:var(--ink); opacity:0.7; margin-bottom:12px; }
+  .timer-problem { font-size:34px; font-weight:800; color:var(--ink); letter-spacing:1px; margin:6px 0 12px; }
+  .timer-input {
+    width:150px; font-size:26px; text-align:center; padding:8px; border-radius:12px;
+    border:2px solid #d9c9b8; font-family:inherit; color:var(--ink); background:#fff;
+  }
+  .timer-input.bad { border-color:#d96666; animation: tshake 300ms; }
+  @keyframes tshake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .timer-msg { min-height:18px; font-size:13px; color:#d96666; margin:8px 0 0; }
+  .timer-card .read-btn { margin:10px 4px 0; }
+  .timer-durations { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:6px; }
+
+  @media (orientation: landscape) {
+    .read-stage { padding-top: 54px; }
+    .read-picker { grid-template-columns: repeat(3,1fr); }
+  }
 </style>
 </head>
 <body class="home-mode">
@@ -535,6 +596,7 @@
     <div class="title"><svg class="flower-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g transform="translate(50,50)"><g transform="rotate(0)"><ellipse cx="0" cy="-30" rx="14" ry="22" fill="#f4a8c2"/></g><g transform="rotate(60)"><ellipse cx="0" cy="-30" rx="14" ry="22" fill="#f4a8c2"/></g><g transform="rotate(120)"><ellipse cx="0" cy="-30" rx="14" ry="22" fill="#f4a8c2"/></g><g transform="rotate(180)"><ellipse cx="0" cy="-30" rx="14" ry="22" fill="#f4a8c2"/></g><g transform="rotate(240)"><ellipse cx="0" cy="-30" rx="14" ry="22" fill="#f4a8c2"/></g><g transform="rotate(300)"><ellipse cx="0" cy="-30" rx="14" ry="22" fill="#f4a8c2"/></g><circle r="20" fill="#f5d76e"/><circle cx="-7" cy="-4" r="2.6" fill="#4a3328"/><circle cx="7" cy="-4" r="2.6" fill="#4a3328"/><path d="M-6,5 Q0,11 6,5" stroke="#4a3328" stroke-width="2.4" fill="none" stroke-linecap="round"/></g></svg> Tiny Garden</div>
   </div>
   <div class="controls">
+    <button class="iconbtn" id="timerBtn" title="Play timer (grown-ups)" aria-label="Play timer">⏱️</button>
     <button class="iconbtn" id="soundBtn" title="Sound on/off" aria-label="Toggle sound">🔊</button>
   </div>
 </header>
@@ -718,6 +780,22 @@
         </div>
         <div class="label">Find the Letter</div>
         <div class="age">AGES 4–7</div>
+      </button>
+
+      <button class="card" data-game="read">
+        <div class="portrait">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8,14 Q30,8 30,16 L30,50 Q30,44 8,50 Z" fill="#f4a8c2"/>
+            <path d="M52,14 Q30,8 30,16 L30,50 Q30,44 52,50 Z" fill="#a8c5e8"/>
+            <line x1="30" y1="16" x2="30" y2="50" stroke="#4a3328" stroke-width="2"/>
+            <line x1="14" y1="22" x2="26" y2="20" stroke="#fff" stroke-width="1.6"/>
+            <line x1="14" y1="28" x2="26" y2="26" stroke="#fff" stroke-width="1.6"/>
+            <line x1="34" y1="20" x2="46" y2="22" stroke="#fff" stroke-width="1.6"/>
+            <line x1="34" y1="26" x2="46" y2="28" stroke="#fff" stroke-width="1.6"/>
+          </svg>
+        </div>
+        <div class="label">Story Time</div>
+        <div class="age">AGES 4–6</div>
       </button>
     </div>
   </div>
@@ -933,10 +1011,60 @@
       </div>
     </section>
 
+    <!-- ============ GAME 7: STORY TIME (read-along) ============ -->
+    <section class="game" data-game="read">
+      <div class="game-label">Story Time</div>
+      <svg class="bg-svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <circle cx="340" cy="80" r="34" fill="var(--sun)" opacity="0.6"/>
+        <ellipse cx="80" cy="110" rx="42" ry="15" fill="#fff" opacity="0.7"/>
+        <path d="M0,500 Q100,460 200,490 T400,480 L400,600 L0,600 Z" fill="var(--grass)"/>
+        <path d="M0,540 Q120,520 240,535 T400,530 L400,600 L0,600 Z" fill="var(--grass-dark)"/>
+      </svg>
+      <div class="read-stage">
+        <div class="read-picker" id="read-picker"></div>
+        <div class="read-view" id="read-view" hidden>
+          <div class="read-pic" id="read-pic">🐔</div>
+          <div class="read-text" id="read-text"></div>
+          <div class="read-actions">
+            <button class="read-btn" id="read-back">← Stories</button>
+            <button class="read-btn primary" id="read-play">▶ Read again</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </div>
 </div>
 
 <div class="dots" id="dots"></div>
+
+<!-- Universal play timer: full-screen lock with a grown-up math gate -->
+<div class="timer-lock" id="timer-lock" hidden>
+  <div class="timer-card">
+    <div class="timer-gate" id="timer-gate">
+      <div class="timer-emoji">🌙</div>
+      <h2 id="timer-gate-title">Time for a break!</h2>
+      <p class="timer-sub">Ask a grown-up to keep playing.</p>
+      <div class="timer-problem" id="timer-problem">27 + 46</div>
+      <input class="timer-input" id="timer-answer" type="text" inputmode="numeric" autocomplete="off" aria-label="Answer" />
+      <div class="timer-msg" id="timer-msg"></div>
+      <button class="read-btn primary" id="timer-check">OK</button>
+    </div>
+    <div class="timer-setup" id="timer-setup" hidden>
+      <div class="timer-emoji">⏱️</div>
+      <h2>Set play time</h2>
+      <p class="timer-sub">Game pauses when the time is up.</p>
+      <div class="timer-durations" id="timer-durations">
+        <button class="read-btn" data-min="5">5 min</button>
+        <button class="read-btn" data-min="10">10 min</button>
+        <button class="read-btn" data-min="15">15 min</button>
+        <button class="read-btn" data-min="20">20 min</button>
+        <button class="read-btn" data-min="30">30 min</button>
+      </div>
+      <button class="read-btn" id="timer-off">Turn timer off</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* =====================================================
@@ -1024,6 +1152,7 @@ const GAME_ROTATION = [
   { key: 'puzzle',    active: true },
   { key: 'count',     active: true },
   { key: 'letter',    active: true },
+  { key: 'read',      active: true },
 ];
 
 // ISO 8601 week number (1–53) for a given date.
@@ -1136,7 +1265,7 @@ window.addEventListener('keydown', (e) => {
 let touchStartX = null, touchStartY = null, swiping = false;
 const carousel = document.getElementById('carousel');
 function isInteractive(target) {
-  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools, .pop-speed');
+  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools, .pop-speed, .read-text, .story-pick, .read-actions');
 }
 carousel.addEventListener('touchstart', (e) => {
   if (e.touches.length !== 1) return;
@@ -2270,6 +2399,252 @@ goTo(0, true);
 
   // Render an initial scene so there's something to color the first time.
   newScene();
+})();
+
+
+/* =====================================================
+   GAME 7: Story Time (read-along with word highlight)
+   ===================================================== */
+(() => {
+  const picker = document.getElementById('read-picker');
+  const view = document.getElementById('read-view');
+  const picEl = document.getElementById('read-pic');
+  const textEl = document.getElementById('read-text');
+  const backBtn = document.getElementById('read-back');
+  const playBtn = document.getElementById('read-play');
+
+  const STORIES = [
+    { emoji:'🐔', title:'The Red Hen',  lines:['The hen is red.','She sees a bug.','The hen runs to it.','Yum, yum!'] },
+    { emoji:'☀️', title:'A Sunny Day',  lines:['The sun is up.','It is warm today.','We go out to play.','What a fun day!'] },
+    { emoji:'🐱', title:'The Little Cat',lines:['The cat is small.','It sits on a mat.','A dog runs by.','The cat has a nap.'] },
+    { emoji:'🌷', title:'In the Garden', lines:['I see a flower.','It is pink.','A bee comes to it.','The bee likes it.'] },
+    { emoji:'🐸', title:'The Frog',      lines:['The frog is green.','It sits on a log.','It hops in the pond.','Splash!'] },
+  ];
+
+  let current = null;
+  let speaking = false;
+  let timers = [];
+  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+
+  STORIES.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = 'story-pick';
+    b.innerHTML = `<span class="emoji">${s.emoji}</span><span>${s.title}</span>`;
+    b.addEventListener('click', (e) => { e.stopPropagation(); openStory(i); });
+    picker.appendChild(b);
+  });
+
+  function renderText(story){
+    textEl.innerHTML = story.lines.map((line, li) => {
+      const words = line.split(' ').map((w, wi) =>
+        `<span class="w" data-l="${li}" data-w="${wi}">${w}</span>`).join(' ');
+      return `<div class="line" data-line="${li}">${words}</div>`;
+    }).join('');
+    textEl.querySelectorAll('.w').forEach(el => {
+      el.addEventListener('click', (e) => { e.stopPropagation(); speakWord(el.textContent); });
+    });
+  }
+
+  function openStory(i){
+    current = STORIES[i];
+    picEl.textContent = current.emoji;
+    renderText(current);
+    picker.hidden = true;
+    view.hidden = false;
+    readAll();
+  }
+
+  function clearHighlights(){ textEl.querySelectorAll('.w.on').forEach(el => el.classList.remove('on')); }
+
+  function stopSpeech(){
+    clearTimers();
+    speaking = false;
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch(_){}
+    clearHighlights();
+  }
+
+  function speakWord(word){
+    if (!window.speechSynthesis) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(word);
+      u.rate = 0.8; u.pitch = 1.1;
+      speechSynthesis.speak(u);
+    } catch(_){}
+  }
+
+  // Read the whole story sentence by sentence, highlighting words karaoke-style.
+  // Timing is estimated (per-word) because iOS Safari doesn't fire onboundary.
+  function readAll(){
+    stopSpeech();
+    speaking = true;
+    let li = 0;
+    const speakLine = () => {
+      if (!speaking || !current || li >= current.lines.length) { speaking = false; clearHighlights(); return; }
+      const line = current.lines[li];
+      const wordEls = Array.from(textEl.querySelectorAll(`.line[data-line="${li}"] .w`));
+      clearHighlights();
+      let t = 0;
+      wordEls.forEach((el) => {
+        const dur = 250 + el.textContent.length * 55;
+        timers.push(setTimeout(() => {
+          if (!speaking) return;
+          wordEls.forEach(w => w.classList.remove('on'));
+          el.classList.add('on');
+        }, t));
+        t += dur;
+      });
+      let done = false;
+      const advance = () => {
+        if (done || !speaking) return;
+        done = true;
+        wordEls.forEach(w => w.classList.remove('on'));
+        li++;
+        timers.push(setTimeout(speakLine, 350));
+      };
+      if (window.speechSynthesis) {
+        try {
+          const u = new SpeechSynthesisUtterance(line);
+          u.rate = 0.8; u.pitch = 1.1;
+          u.onend = advance;
+          timers.push(setTimeout(advance, t + 900)); // safety if onend never fires
+          speechSynthesis.speak(u);
+        } catch(_) { timers.push(setTimeout(advance, t + 300)); }
+      } else {
+        timers.push(setTimeout(advance, t + 300));
+      }
+    };
+    speakLine();
+  }
+
+  playBtn.addEventListener('click', (e) => { e.stopPropagation(); if (current) readAll(); });
+  backBtn.addEventListener('click', (e) => { e.stopPropagation(); stopSpeech(); view.hidden = true; picker.hidden = false; });
+
+  function start(){ stopSpeech(); view.hidden = true; picker.hidden = false; }
+  function stop(){ stopSpeech(); }
+  document.addEventListener('game-activated', (e) => {
+    if (e.detail.game === 'read') start(); else stop();
+  });
+})();
+
+
+/* =====================================================
+   Universal play timer (parental lock with a math gate)
+   ===================================================== */
+(() => {
+  const btn = document.getElementById('timerBtn');
+  const lock = document.getElementById('timer-lock');
+  const gate = document.getElementById('timer-gate');
+  const setup = document.getElementById('timer-setup');
+  const problemEl = document.getElementById('timer-problem');
+  const answerEl = document.getElementById('timer-answer');
+  const msgEl = document.getElementById('timer-msg');
+  const checkBtn = document.getElementById('timer-check');
+  const gateTitle = document.getElementById('timer-gate-title');
+  const durBox = document.getElementById('timer-durations');
+  const offBtn = document.getElementById('timer-off');
+  const KEY = 'tg_timer_deadline';
+
+  let tickId = null;
+  let answer = 0;
+  let onGatePass = null;
+  let wasPaused = false;
+
+  const nowMs = () => Date.now();
+  const deadline = () => parseInt(localStorage.getItem(KEY) || '0', 10);
+  const remaining = () => Math.max(0, deadline() - nowMs());
+  const isRunning = () => deadline() > nowMs();
+  const fmt = (ms) => { const s=Math.ceil(ms/1000), m=Math.floor(s/60), ss=s%60; return m+':'+String(ss).padStart(2,'0'); };
+
+  function updateBtn(){
+    btn.classList.toggle('on', isRunning());
+    btn.title = isRunning() ? ('Play timer — ' + fmt(remaining()) + ' left') : 'Play timer (grown-ups)';
+  }
+  function startTick(){
+    stopTick();
+    tickId = setInterval(() => {
+      updateBtn();
+      if (deadline() && remaining() <= 0) { stopTick(); lockNow(); }
+    }, 1000);
+  }
+  function stopTick(){ if (tickId){ clearInterval(tickId); tickId = null; } }
+
+  function newProblem(){
+    const a = 11 + Math.floor(Math.random()*79);
+    const b = 11 + Math.floor(Math.random()*79);
+    answer = a + b;
+    problemEl.textContent = a + ' + ' + b;
+    answerEl.value = '';
+    answerEl.classList.remove('bad');
+  }
+  function showGate(title){
+    gateTitle.textContent = title;
+    gate.hidden = false; setup.hidden = true; msgEl.textContent = '';
+    newProblem();
+    lock.hidden = false;
+    setTimeout(() => { try { answerEl.focus(); } catch(_){} }, 60);
+  }
+  function showSetup(){ gate.hidden = true; setup.hidden = false; }
+  function hideLock(){ lock.hidden = true; }
+
+  function lockNow(){
+    wasPaused = true;
+    document.dispatchEvent(new CustomEvent('game-activated', { detail:{ game:'none' } }));
+    onGatePass = showSetup;
+    showGate('Time for a break!');
+  }
+  function resumeIfNeeded(){
+    if (wasPaused){
+      wasPaused = false;
+      if (document.body.classList.contains('game-mode') && typeof goTo === 'function') goTo(current);
+    }
+  }
+  function setDuration(min){
+    localStorage.setItem(KEY, String(nowMs() + min*60000));
+    hideLock(); updateBtn(); startTick(); resumeIfNeeded();
+  }
+  function turnOff(){
+    localStorage.removeItem(KEY);
+    stopTick(); hideLock(); updateBtn(); resumeIfNeeded();
+  }
+  function checkAnswer(){
+    if (parseInt(answerEl.value, 10) === answer){
+      msgEl.textContent = '';
+      const f = onGatePass; onGatePass = null;
+      if (f) f();
+    } else {
+      answerEl.classList.add('bad');
+      msgEl.textContent = 'Not quite — try again';
+      setTimeout(newProblem, 500);
+    }
+  }
+
+  checkBtn.addEventListener('click', (e)=>{ e.stopPropagation(); checkAnswer(); });
+  answerEl.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ e.preventDefault(); checkAnswer(); } });
+  durBox.querySelectorAll('button').forEach(b =>
+    b.addEventListener('click', (e)=>{ e.stopPropagation(); setDuration(parseInt(b.dataset.min,10)); }));
+  offBtn.addEventListener('click', (e)=>{ e.stopPropagation(); turnOff(); });
+
+  // Header button: set a fresh timer, or (if one's running) gate any change.
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (isRunning()){
+      wasPaused = false;              // adjusting from header doesn't pause the game
+      onGatePass = showSetup;
+      showGate('Grown-ups only');
+    } else {
+      onGatePass = null;
+      gate.hidden = true; setup.hidden = false;
+      lock.hidden = false;
+    }
+  });
+
+  // On load: restore a running timer, or lock right away if it already expired.
+  updateBtn();
+  if (deadline()){
+    if (remaining() > 0) startTick();
+    else lockNow();
+  }
 })();
 
 
