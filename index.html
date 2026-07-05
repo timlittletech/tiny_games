@@ -959,6 +959,81 @@ window.addEventListener('pointerdown', () => Sound.init(), { once:true });
 
 
 /* =====================================================
+   GAME ROTATION
+   Controls which games show on the home screen & carousel,
+   so you can swap games in and out each week (and add new
+   ones over time) without deleting their code.
+
+   To change the lineup: edit GAME_ROTATION below, then
+   redeploy (push to main). Games appear in the order listed.
+
+   Each entry: { key, active, weeks }
+     key    – matches data-game on the <section> and its home card
+     active – true shows it, false hides it (default: true)
+     weeks  – OPTIONAL array of ISO week numbers (1–53). If set, the
+              game shows ONLY during those weeks (overrides active),
+              so you can queue a seasonal "game of the week" ahead of
+              time. Example: a winter game -> weeks: [50, 51, 52, 1].
+
+   Notes:
+     • A game left out of this list entirely is still shown.
+     • If the config would hide every game, it's ignored (fail-safe).
+   ===================================================== */
+const GAME_ROTATION = [
+  { key: 'pop',       active: true },
+  { key: 'butterfly', active: true },
+  { key: 'color',     active: true },
+  { key: 'puzzle',    active: true },
+  { key: 'count',     active: true },
+  { key: 'letter',    active: true },
+];
+
+// ISO 8601 week number (1–53) for a given date.
+function isoWeek(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = date.getUTCDay() || 7;          // Mon=1 … Sun=7
+  date.setUTCDate(date.getUTCDate() + 4 - day); // nearest Thursday
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
+}
+
+function isGameOn(entry, week) {
+  if (Array.isArray(entry.weeks)) return entry.weeks.includes(week);
+  return entry.active !== false;
+}
+
+// Apply the rotation before the carousel reads the game list: remove the
+// panels + home cards for games switched off, and reorder survivors to
+// match GAME_ROTATION. Runs against live DOM order so the dots, swipe
+// math and card handlers downstream all see the final lineup.
+(function applyRotation() {
+  const week = isoWeek(new Date());
+  const trackEl = document.getElementById('track');
+  const cardsEl = document.getElementById('cards');
+  const off = new Set(GAME_ROTATION.filter(e => !isGameOn(e, week)).map(e => e.key));
+  const survivors = Array.from(trackEl.querySelectorAll('.game'))
+    .map(g => g.dataset.game).filter(k => !off.has(k));
+  if (survivors.length === 0) return; // fail-safe: never blank the app
+
+  off.forEach(key => {
+    const panel = trackEl.querySelector('.game[data-game="' + key + '"]');
+    const card = cardsEl.querySelector('.card[data-game="' + key + '"]');
+    if (panel) panel.remove();
+    if (card) card.remove();
+  });
+
+  // Reorder kept games to the order listed in GAME_ROTATION.
+  GAME_ROTATION.forEach(entry => {
+    if (off.has(entry.key)) return;
+    const panel = trackEl.querySelector('.game[data-game="' + entry.key + '"]');
+    const card = cardsEl.querySelector('.card[data-game="' + entry.key + '"]');
+    if (panel) trackEl.appendChild(panel);
+    if (card) cardsEl.appendChild(card);
+  });
+})();
+
+
+/* =====================================================
    SHARED: Carousel
    ===================================================== */
 const track = document.getElementById('track');

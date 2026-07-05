@@ -19,6 +19,32 @@ A small suite of calm, garden-themed games for kids ages 1–7. One HTML file, n
 - Safe-area aware (works with iPad/iPhone notch).
 - No external libraries, no network calls, no analytics.
 
+## Weekly game rotation
+
+The home screen and carousel are driven by a `GAME_ROTATION` config near the
+top of the `<script>` in `index.html`, so you can swap games in and out each
+week (and add new ones over time) without deleting their code:
+
+```js
+const GAME_ROTATION = [
+  { key: 'pop',       active: true },
+  { key: 'butterfly', active: true },
+  { key: 'color',     active: false },        // hidden this week
+  { key: 'letter',    weeks: [50, 51, 52, 1] }, // only shows those ISO weeks
+];
+```
+
+- `active: false` hides a game; `active: true` (the default) shows it.
+- `weeks: [...]` shows a game **only** during those ISO week numbers (1–53),
+  which overrides `active` — handy for queuing a seasonal "game of the week".
+- Games appear in the order listed. A game left out of the list is still shown.
+- If the config would hide *every* game, it's ignored (fail-safe).
+
+To add a brand-new game: add its `<button class="card" data-game="...">` on the
+home screen and its `<section class="game" data-game="...">` panel in the
+carousel, then add a matching entry to `GAME_ROTATION`. Redeploy by pushing to
+`main`.
+
 ## Run locally
 
 Just open `index.html` in any modern browser.
