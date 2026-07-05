@@ -553,11 +553,11 @@
   .read-speed button.active { background: var(--soft); opacity:1; box-shadow:0 1px 3px rgba(74,51,40,0.14); }
   .read-pic { font-size:64px; line-height:1; }
   .read-words {
-    display:flex; gap:18px; flex-wrap:wrap; justify-content:center; align-items:center;
-    font-size: clamp(30px,9vw,54px); font-weight:800; color:var(--ink); text-align:center;
-    min-height:1.3em; margin-top:4px;
+    display:flex; gap:6px 12px; flex-wrap:wrap; justify-content:center; align-items:center;
+    font-size: clamp(24px,6.5vw,42px); font-weight:800; color:var(--ink); text-align:center;
+    min-height:1.3em; margin-top:4px; max-width:660px;
   }
-  .read-words .w { cursor:pointer; padding:2px 8px; border-radius:10px; }
+  .read-words .w { cursor:pointer; padding:2px 6px; border-radius:10px; }
   .read-words .w:active { background: var(--sun); }
   .read-progress {
     width:min(80%,420px); height:14px; background: rgba(255,255,255,0.7);
@@ -2460,8 +2460,10 @@ goTo(0, true);
   if (!RATES[rSpeed]) rSpeed = 'fast';
 
   let current = null;   // current story
-  let chunks = [];      // groups of up to 3 words
-  let chunkIdx = 0;
+  let pages = [];       // one sentence per page
+  let pageIdx = 0;
+  let timers = [];
+  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
 
   function syncSpeedUI(){
     speedBox.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.rspeed === rSpeed));
@@ -2473,7 +2475,7 @@ goTo(0, true);
       rSpeed = b.dataset.rspeed;
       localStorage.setItem('tg_read_speed', rSpeed);
       syncSpeedUI();
-      if (current) readChunk();   // apply the new speed right away
+      if (current) readPage();   // apply the new speed right away
     });
   });
   syncSpeedUI();
@@ -2486,61 +2488,78 @@ goTo(0, true);
     picker.appendChild(b);
   });
 
-  function stopSpeech(){ try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch(_){} }
-  function speak(text){
-    if (!window.speechSynthesis) return;
+  function stopSpeech(){ clearTimers(); try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch(_){} }
+  function speak(text, onend){
+    if (!window.speechSynthesis) { if (onend) onend(); return; }
     try {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.rate = RATES[rSpeed]; u.pitch = 1.1;
+      if (onend) u.onend = onend;
       speechSynthesis.speak(u);
-    } catch(_){}
+    } catch(_) { if (onend) onend(); }
   }
 
   function openStory(i){
     current = STORIES[i];
     picEl.textContent = current.emoji;
-    const words = current.lines.join(' ').split(/\s+/).filter(Boolean);
-    chunks = [];
-    for (let k = 0; k < words.length; k += 3) chunks.push(words.slice(k, k + 3));
+    pages = current.lines.slice();     // one sentence per page
     picker.hidden = true;
     view.hidden = false;
-    showChunk(0);
+    showPage(0);
   }
 
-  function showChunk(i){
+  function showPage(i){
     stopSpeech();
-    chunkIdx = i;
-    const chunk = chunks[i] || [];
-    wordsEl.innerHTML = chunk.map(w => `<span class="w">${w}</span>`).join(' ');
+    pageIdx = i;
+    const words = (pages[i] || '').split(/\s+/).filter(Boolean);
+    wordsEl.innerHTML = words.map(w => `<span class="w">${w}</span>`).join('');
     wordsEl.querySelectorAll('.w').forEach(el =>
       el.addEventListener('click', (e) => { e.stopPropagation(); speak(el.textContent); }));
-    nextBtn.textContent = (i >= chunks.length - 1) ? '✓ Done' : 'Next →';
-    readChunk();
+    nextBtn.textContent = (i >= pages.length - 1) ? '✓ Done' : 'Next →';
+    readPage();
   }
 
-  // Read the current 3 words aloud and fill the progress bar in time with them.
-  // The child taps Next when ready — nothing auto-advances.
-  function readChunk(){
+  // Read the current sentence aloud and advance the progress bar word by word,
+  // in step with the reading, so the bar tracks along under the words. Timing
+  // is estimated per word (iOS Safari doesn't fire onboundary); the bar snaps
+  // to full when the speech actually ends.
+  function readPage(){
     stopSpeech();
-    const chunk = chunks[chunkIdx] || [];
-    const dur = Math.max(700, chunk.length * PERWORD[rSpeed]);
+    const wordEls = Array.from(wordsEl.querySelectorAll('.w'));
+    const durs = wordEls.map(el => Math.round(PERWORD[rSpeed] * (0.55 + el.textContent.replace(/[^A-Za-z]/g,'').length * 0.14)));
+    const total = durs.reduce((a, b) => a + b, 0) || 1;
+    // reset the bar
     fill.style.transition = 'none';
     fill.style.width = '0%';
-    void fill.offsetWidth;                 // reflow so the reset applies
-    fill.style.transition = `width ${dur}ms linear`;
-    fill.style.width = '100%';
-    speak(chunk.join(' '));
+    void fill.offsetWidth;               // reflow so the reset applies
+    // fill each word's segment over that word's spoken time
+    let elapsed = 0;
+    wordEls.forEach((el, i) => {
+      const startAt = elapsed;
+      elapsed += durs[i];
+      const endPct = (elapsed / total) * 100;
+      timers.push(setTimeout(() => {
+        fill.style.transition = `width ${durs[i]}ms linear`;
+        fill.style.width = endPct.toFixed(2) + '%';
+      }, startAt));
+    });
+    // when speech ends, make sure the bar is exactly full
+    speak(pages[pageIdx], () => {
+      clearTimers();
+      fill.style.transition = 'width 160ms linear';
+      fill.style.width = '100%';
+    });
   }
 
   function toPicker(){ stopSpeech(); view.hidden = true; picker.hidden = false; current = null; }
 
   nextBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (chunkIdx >= chunks.length - 1) toPicker();
-    else showChunk(chunkIdx + 1);
+    if (pageIdx >= pages.length - 1) toPicker();
+    else showPage(pageIdx + 1);
   });
-  replayBtn.addEventListener('click', (e) => { e.stopPropagation(); if (current) readChunk(); });
+  replayBtn.addEventListener('click', (e) => { e.stopPropagation(); if (current) readPage(); });
   backBtn.addEventListener('click', (e) => { e.stopPropagation(); toPicker(); });
 
   function start(){ toPicker(); }
