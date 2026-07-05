@@ -534,7 +534,8 @@
   /* ==== Game 7: Story Time (read-along) ==== */
   .read-stage {
     position:absolute; inset:0; display:flex; flex-direction:column;
-    padding: calc(max(env(safe-area-inset-top),10px) + 92px) 16px max(env(safe-area-inset-bottom),16px);
+    /* extra bottom room so the action buttons clear the fixed dots nav */
+    padding: calc(max(env(safe-area-inset-top),10px) + 92px) 16px calc(max(env(safe-area-inset-bottom),16px) + 46px);
   }
   .read-picker { display:grid; grid-template-columns: repeat(2,1fr); gap:12px; align-content:start; }
   .story-pick {
@@ -559,12 +560,26 @@
   }
   .read-words .w { cursor:pointer; padding:2px 6px; border-radius:10px; }
   .read-words .w:active { background: var(--sun); }
-  .read-progress {
-    width:min(80%,420px); height:14px; background: rgba(255,255,255,0.7);
-    border-radius:999px; overflow:hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.12);
+  /* Segmented, draggable reading bar — one cell per word; drag the thumb to
+     scrub to where you are in the sentence. */
+  .read-bar {
+    position:relative; width:min(88%,470px); padding:16px 0; margin-top:2px;
+    touch-action:none; cursor:pointer; user-select:none; -webkit-user-select:none;
   }
-  .read-progress-fill { height:100%; width:0%; background: var(--petal-deep); border-radius:999px; }
-  .read-actions { margin-top:auto; display:flex; gap:10px; }
+  .read-segs { display:flex; gap:5px; height:16px; }
+  .read-seg {
+    flex:1 1 0; background: rgba(255,255,255,0.72); border-radius:6px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.12); transition: background-color 140ms;
+  }
+  .read-seg.on { background: var(--petal-deep); }
+  .read-thumb {
+    position:absolute; top:50%; left:0%; width:28px; height:28px; border-radius:50%;
+    background:#fff; border:4px solid var(--petal-deep); box-shadow:0 2px 7px rgba(74,51,40,0.28);
+    transform:translate(-50%,-50%); transition:left 140ms linear; pointer-events:none;
+  }
+  .read-bar.dragging .read-thumb { transition:none; }
+  .read-bar.dragging .read-seg { transition:none; }
+  .read-actions { margin-top:auto; display:flex; gap:10px; padding-bottom:6px; }
   .read-btn {
     border:none; border-radius:999px; padding:10px 20px; font-family:inherit; font-weight:700;
     font-size:15px; background: rgba(255,255,255,0.9); color:var(--ink); cursor:pointer;
@@ -1045,7 +1060,10 @@
           </div>
           <div class="read-pic" id="read-pic">🐔</div>
           <div class="read-words" id="read-words"></div>
-          <div class="read-progress"><div class="read-progress-fill" id="read-progress-fill"></div></div>
+          <div class="read-bar" id="read-bar" role="slider" aria-label="Reading position">
+            <div class="read-segs" id="read-segs"></div>
+            <div class="read-thumb" id="read-thumb"></div>
+          </div>
           <div class="read-actions">
             <button class="read-btn" id="read-back">← Stories</button>
             <button class="read-btn" id="read-replay">▶ Again</button>
@@ -1293,7 +1311,7 @@ window.addEventListener('keydown', (e) => {
 let touchStartX = null, touchStartY = null, swiping = false;
 const carousel = document.getElementById('carousel');
 function isInteractive(target) {
-  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools, .pop-speed, .read-words, .read-speed, .story-pick, .read-actions');
+  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools, .pop-speed, .read-words, .read-speed, .read-bar, .story-pick, .read-actions');
 }
 carousel.addEventListener('touchstart', (e) => {
   if (e.touches.length !== 1) return;
@@ -2431,14 +2449,17 @@ goTo(0, true);
 
 
 /* =====================================================
-   GAME 7: Story Time (3 words at a time, progress bar)
+   GAME 7: Story Time (one sentence per page, draggable
+   per-word reading bar)
    ===================================================== */
 (() => {
   const picker = document.getElementById('read-picker');
   const view = document.getElementById('read-view');
   const picEl = document.getElementById('read-pic');
   const wordsEl = document.getElementById('read-words');
-  const fill = document.getElementById('read-progress-fill');
+  const bar = document.getElementById('read-bar');
+  const segsEl = document.getElementById('read-segs');
+  const thumb = document.getElementById('read-thumb');
   const backBtn = document.getElementById('read-back');
   const replayBtn = document.getElementById('read-replay');
   const nextBtn = document.getElementById('read-next');
@@ -2462,6 +2483,9 @@ goTo(0, true);
   let current = null;   // current story
   let pages = [];       // one sentence per page
   let pageIdx = 0;
+  let pageWords = [];    // words of the current sentence
+  let segEls = [];       // one progress cell per word
+  let dragging = false;
   let timers = [];
   const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
 
@@ -2475,7 +2499,7 @@ goTo(0, true);
       rSpeed = b.dataset.rspeed;
       localStorage.setItem('tg_read_speed', rSpeed);
       syncSpeedUI();
-      if (current) readPage();   // apply the new speed right away
+      if (current) readFrom(0);   // apply the new speed right away
     });
   });
   syncSpeedUI();
@@ -2512,45 +2536,75 @@ goTo(0, true);
   function showPage(i){
     stopSpeech();
     pageIdx = i;
-    const words = (pages[i] || '').split(/\s+/).filter(Boolean);
-    wordsEl.innerHTML = words.map(w => `<span class="w">${w}</span>`).join('');
-    wordsEl.querySelectorAll('.w').forEach(el =>
-      el.addEventListener('click', (e) => { e.stopPropagation(); speak(el.textContent); }));
+    pageWords = (pages[i] || '').split(/\s+/).filter(Boolean);
+    wordsEl.innerHTML = pageWords.map(w => `<span class="w">${w}</span>`).join('');
+    wordsEl.querySelectorAll('.w').forEach((el, wi) =>
+      el.addEventListener('click', (e) => { e.stopPropagation(); readFrom(wi); }));
+    // one progress cell per word
+    segsEl.innerHTML = pageWords.map(() => '<div class="read-seg"></div>').join('');
+    segEls = Array.from(segsEl.querySelectorAll('.read-seg'));
     nextBtn.textContent = (i >= pages.length - 1) ? '✓ Done' : 'Next →';
-    readPage();
+    fillUpTo(-1);
+    readFrom(0);
   }
 
-  // Read the current sentence aloud and advance the progress bar word by word,
-  // in step with the reading, so the bar tracks along under the words. Timing
-  // is estimated per word (iOS Safari doesn't fire onboundary); the bar snaps
-  // to full when the speech actually ends.
-  function readPage(){
-    stopSpeech();
-    const wordEls = Array.from(wordsEl.querySelectorAll('.w'));
-    const durs = wordEls.map(el => Math.round(PERWORD[rSpeed] * (0.55 + el.textContent.replace(/[^A-Za-z]/g,'').length * 0.14)));
-    const total = durs.reduce((a, b) => a + b, 0) || 1;
-    // reset the bar
-    fill.style.transition = 'none';
-    fill.style.width = '0%';
-    void fill.offsetWidth;               // reflow so the reset applies
-    // fill each word's segment over that word's spoken time
-    let elapsed = 0;
-    wordEls.forEach((el, i) => {
-      const startAt = elapsed;
-      elapsed += durs[i];
-      const endPct = (elapsed / total) * 100;
-      timers.push(setTimeout(() => {
-        fill.style.transition = `width ${durs[i]}ms linear`;
-        fill.style.width = endPct.toFixed(2) + '%';
-      }, startAt));
-    });
-    // when speech ends, make sure the bar is exactly full
-    speak(pages[pageIdx], () => {
-      clearTimers();
-      fill.style.transition = 'width 160ms linear';
-      fill.style.width = '100%';
-    });
+  // Fill every word-cell up to and including `k`, and park the thumb at the end
+  // of that word (k = -1 means nothing read yet).
+  function fillUpTo(k){
+    const N = segEls.length || 1;
+    segEls.forEach((s, i) => s.classList.toggle('on', i <= k));
+    const frac = Math.min(1, Math.max(0, (k + 1) / N));
+    thumb.style.left = (frac * 100).toFixed(2) + '%';
   }
+
+  // Read the sentence from word `startIdx` to the end, advancing the per-word
+  // bar in step with the reading. Timing is estimated per word (iOS Safari
+  // doesn't fire onboundary); the bar completes when the speech actually ends.
+  function readFrom(startIdx){
+    stopSpeech();
+    startIdx = Math.min(pageWords.length - 1, Math.max(0, startIdx));
+    fillUpTo(startIdx - 1);
+    const durs = pageWords.map(w => Math.round(PERWORD[rSpeed] * (0.55 + w.replace(/[^A-Za-z]/g,'').length * 0.14)));
+    let elapsed = 0;
+    for (let i = startIdx; i < pageWords.length; i++) {
+      const at = elapsed;
+      elapsed += durs[i];
+      timers.push(setTimeout(() => fillUpTo(i), at));
+    }
+    speak(pageWords.slice(startIdx).join(' '), () => { clearTimers(); fillUpTo(pageWords.length - 1); });
+  }
+
+  // ---- Drag the bar to scrub to a word ----
+  const fracFromX = (clientX) => {
+    const r = bar.getBoundingClientRect();
+    return Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+  };
+  function dragTo(clientX){
+    const f = fracFromX(clientX);
+    const N = pageWords.length || 1;
+    thumb.style.left = (f * 100).toFixed(2) + '%';
+    segEls.forEach((s, i) => s.classList.toggle('on', (i + 0.5) / N <= f));
+  }
+  bar.addEventListener('pointerdown', (e) => {
+    if (!pageWords.length) return;
+    e.stopPropagation(); e.preventDefault();
+    dragging = true;
+    bar.classList.add('dragging');
+    stopSpeech();
+    try { bar.setPointerCapture(e.pointerId); } catch(_){}
+    dragTo(e.clientX);
+  });
+  bar.addEventListener('pointermove', (e) => { if (dragging) { e.preventDefault(); dragTo(e.clientX); } });
+  function endDrag(e){
+    if (!dragging) return;
+    dragging = false;
+    bar.classList.remove('dragging');
+    const f = fracFromX(e.clientX);
+    const idx = Math.min(pageWords.length - 1, Math.max(0, Math.floor(f * pageWords.length)));
+    readFrom(idx);   // resume reading from the word they dropped on
+  }
+  bar.addEventListener('pointerup', endDrag);
+  bar.addEventListener('pointercancel', endDrag);
 
   function toPicker(){ stopSpeech(); view.hidden = true; picker.hidden = false; current = null; }
 
@@ -2559,7 +2613,7 @@ goTo(0, true);
     if (pageIdx >= pages.length - 1) toPicker();
     else showPage(pageIdx + 1);
   });
-  replayBtn.addEventListener('click', (e) => { e.stopPropagation(); if (current) readPage(); });
+  replayBtn.addEventListener('click', (e) => { e.stopPropagation(); if (current) readFrom(0); });
   backBtn.addEventListener('click', (e) => { e.stopPropagation(); toPicker(); });
 
   function start(){ toPicker(); }
