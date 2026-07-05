@@ -1870,6 +1870,11 @@ goTo(0, true);
   const OUTLINE = '#4a3328';
   const VB_W = 400, VB_H = 380;
 
+  // Minimum sizes so shapes stay big enough for little fingers to tap.
+  const MIN_STEM_W = 6;   // flower stems (thin verticals were easy to miss)
+  const MIN_STAR   = 7;   // night-sky stars
+  const MIN_DECO_R = 3.2; // decorative dots kept visible but non-tappable
+
   function shape(tag, attrs) {
     const merged = Object.assign({
       class: 'fillable',
@@ -1879,6 +1884,20 @@ goTo(0, true);
       'stroke-width': 2,
       'stroke-linejoin': 'round',
       'stroke-linecap': 'round'
+    }, attrs);
+    const a = Object.entries(merged)
+      .filter(([_, v]) => v !== undefined && v !== null)
+      .map(([k, v]) => `${k}="${v}"`).join(' ');
+    return `<${tag} ${a}/>`;
+  }
+  // Decorative detail that is intentionally NOT colorable — the tiny dots/eyes
+  // that were too small to tap. pointer-events:none lets a tap fall through to
+  // the bigger shape behind, so kids color the cap/body instead of missing.
+  function deco(tag, attrs) {
+    const merged = Object.assign({
+      fill: OUTLINE,
+      stroke: 'none',
+      'pointer-events': 'none'
     }, attrs);
     const a = Object.entries(merged)
       .filter(([_, v]) => v !== undefined && v !== null)
@@ -1922,6 +1941,7 @@ goTo(0, true);
          + shape('circle', { cx, cy: cy - 8*scale, r: 16*scale });
   }
   function starShape(cx, cy, size) {
+    size = Math.max(MIN_STAR, size);
     const pts = [];
     for (let i = 0; i < 10; i++) {
       const a = (i * 36 - 90) * Math.PI / 180;
@@ -1940,7 +1960,7 @@ goTo(0, true);
   function flower(cx, baseY, scale, petals) {
     const stemLen = rnd(28, 50) * scale;
     const headY = baseY - stemLen;
-    const stemW = Math.max(2, 3 * scale);
+    const stemW = Math.max(MIN_STEM_W, 4.5 * scale);
     let s = shape('rect', { x: cx - stemW/2, y: headY, width: stemW, height: stemLen });
     if (Math.random() < 0.65) {
       const ly = headY + stemLen * rnd(0.35, 0.7);
@@ -1957,7 +1977,7 @@ goTo(0, true);
            shape('ellipse', { cx, cy: headY - offsetY, rx: pRX, ry: pRY }) +
            '</g>';
     }
-    s += shape('circle', { cx, cy: headY, r: rnd(4.5, 6.5) * scale });
+    s += shape('circle', { cx, cy: headY, r: Math.max(4.5, 5.5 * scale) });
     return s;
   }
   function mushroom(cx, baseY, scale) {
@@ -1970,10 +1990,11 @@ goTo(0, true);
     s += shape('rect', { x: cx - stemW/2, y: baseY, width: stemW, height: stemH });
     const n = rndI(2, 3);
     for (let i = 0; i < n; i++) {
-      s += shape('circle', {
-        cx: cx + rnd(-capW*0.65, capW*0.65),
-        cy: baseY - capH * rnd(0.35, 0.75),
-        r: rnd(1.6, 2.6) * scale
+      s += deco('circle', {
+        cx: cx + rnd(-capW*0.55, capW*0.55),
+        cy: baseY - capH * rnd(0.35, 0.7),
+        r: Math.max(MIN_DECO_R, 2.2 * scale),
+        fill: DEFAULT_FILL
       });
     }
     return s;
@@ -2010,9 +2031,9 @@ goTo(0, true);
   function ladybugArt(cx, cy, scale) {
     const w = 10 * scale, h = 8 * scale;
     let s = shape('path', { d: `M${cx - w},${cy} Q${cx - w},${cy - h} ${cx},${cy - h} Q${cx + w},${cy - h} ${cx + w},${cy} Z` });
-    s += shape('circle', { cx: cx - 4*scale, cy: cy - 4*scale, r: 1.6*scale });
-    s += shape('circle', { cx: cx + 4*scale, cy: cy - 4*scale, r: 1.6*scale });
-    s += shape('circle', { cx, cy: cy - 6*scale, r: 1.6*scale });
+    s += deco('circle', { cx: cx - 4*scale, cy: cy - 4*scale, r: Math.max(MIN_DECO_R, 1.8*scale) });
+    s += deco('circle', { cx: cx + 4*scale, cy: cy - 4*scale, r: Math.max(MIN_DECO_R, 1.8*scale) });
+    s += deco('circle', { cx, cy: cy - 6*scale, r: Math.max(MIN_DECO_R, 1.8*scale) });
     return s;
   }
   function snail(cx, baseY, scale) {
@@ -2022,7 +2043,7 @@ goTo(0, true);
     s += shape('path', {
       d: `M${cx - 14*scale},${baseY} Q${cx - 14*scale},${baseY - 4*scale} ${cx + 4*scale},${baseY - 4*scale} L${cx + 10*scale},${baseY} Z`
     });
-    s += shape('circle', { cx: cx + 8*scale, cy: baseY - 9*scale, r: 1.3*scale });
+    s += deco('circle', { cx: cx + 8*scale, cy: baseY - 9*scale, r: Math.max(2.4, 1.6*scale) });
     return s;
   }
 
@@ -2040,7 +2061,7 @@ goTo(0, true);
     } else {
       svg += moon(rnd(60, 340), rnd(30, 80), rnd(16, 24), Math.random() < 0.6);
       const ns = rndI(3, 7);
-      for (let i = 0; i < ns; i++) svg += starShape(rnd(20, 380), rnd(20, 140), rnd(4, 7));
+      for (let i = 0; i < ns; i++) svg += starShape(rnd(20, 380), rnd(20, 140), rnd(MIN_STAR, MIN_STAR + 4));
       if (Math.random() < 0.4) svg += cloud(rnd(60, 340), rnd(50, 130), rnd(0.7, 1.1));
     }
 
