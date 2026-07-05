@@ -145,6 +145,22 @@
 
   /* ==== Game 1: Pop ==== */
   #pop-canvas { position:absolute; inset:0; }
+  .pop-speed {
+    position:absolute; top: calc(max(env(safe-area-inset-top),10px) + 96px);
+    left:50%; transform:translateX(-50%);
+    z-index:6; display:flex; gap:4px;
+    background: rgba(255,255,255,0.72); padding:4px; border-radius:999px;
+    box-shadow: 0 2px 6px rgba(74,51,40,0.14);
+  }
+  .pop-speed button {
+    border:none; background:transparent; font-family:inherit; font-weight:700;
+    font-size:13px; padding:5px 13px; border-radius:999px; cursor:pointer;
+    color: var(--ink); opacity:0.5;
+  }
+  .pop-speed button.active {
+    background: var(--soft); opacity:1;
+    box-shadow: 0 1px 3px rgba(74,51,40,0.14);
+  }
   .seed {
     position:absolute; pointer-events:auto;
     width:54px; height:54px;
@@ -489,6 +505,23 @@
     display:flex; justify-content:center; gap:8px;
     margin-top: 2px;
   }
+  /* Cap swatch/sticker size and centre them so they never balloon on wide screens. */
+  .swatch, .sticker-pick { max-width: 58px; margin: 0 auto; }
+
+  /* Landscape / short viewports: the colour picker was eating the screen.
+     Shrink the tool strip (one compact row of colours, smaller pads) so the
+     garden/colouring area gets the space. */
+  @media (orientation: landscape) {
+    /* Lift the floating game title into the header band so it doesn't sit on
+       top of the (now taller) play area in short landscape viewports. */
+    .game-label { top: max(env(safe-area-inset-top), 8px); }
+    .color-canvas-wrap { padding: 50px 10px 4px; }
+    .color-tools { padding: 5px 12px 34px; border-radius: 18px 18px 0 0; gap: 3px; }
+    .color-wheel { grid-template-columns: repeat(12, 1fr); gap: 5px; }
+    .sticker-row { grid-template-columns: repeat(8, 1fr); }
+    .swatch, .sticker-pick { max-width: 34px; }
+    .tab { padding: 4px 14px; }
+  }
 
   .fillable { cursor:pointer; }
   .placed-sticker { cursor:pointer; pointer-events:auto; }
@@ -699,6 +732,11 @@
     <!-- ============ GAME 1: POP ============ -->
     <section class="game" data-game="pop">
       <div class="game-label">Pop the Fluff</div>
+      <div class="pop-speed" id="pop-speed" role="group" aria-label="Speed">
+        <button type="button" data-speed="slow">Slow</button>
+        <button type="button" data-speed="medium" class="active">Medium</button>
+        <button type="button" data-speed="fast">Fast</button>
+      </div>
       <svg class="bg-svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <!-- sun -->
         <circle cx="320" cy="80" r="42" fill="var(--sun)" opacity="0.85"/>
@@ -1098,7 +1136,7 @@ window.addEventListener('keydown', (e) => {
 let touchStartX = null, touchStartY = null, swiping = false;
 const carousel = document.getElementById('carousel');
 function isInteractive(target) {
-  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools');
+  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools, .pop-speed');
 }
 carousel.addEventListener('touchstart', (e) => {
   if (e.touches.length !== 1) return;
@@ -1128,7 +1166,7 @@ carousel.addEventListener('touchend', (e) => {
 let mouseDown = false, mouseStartX = 0;
 carousel.addEventListener('mousedown', (e) => {
   // skip if clicking interactive
-  if (e.target.closest('button, .seed, .puzzle-piece, .butterfly, .letter-flower, .choice, svg.coloring, .fillable')) return;
+  if (e.target.closest('button, .seed, .puzzle-piece, .butterfly, .letter-flower, .choice, svg.coloring, .fillable, .pop-speed')) return;
   mouseDown = true; mouseStartX = e.clientX;
 });
 window.addEventListener('mouseup', (e) => {
@@ -1153,6 +1191,27 @@ goTo(0, true);
   const seeds = [];
   let spawnTimer = null;
   let active = false;
+
+  // Difficulty = how fast the fluffs float up. Medium is the original speed.
+  const SPEEDS = { slow: 0.6, medium: 1, fast: 1.7 };
+  let speedKey = localStorage.getItem('tg_pop_speed') || 'medium';
+  if (!SPEEDS[speedKey]) speedKey = 'medium';
+  const speedBox = document.getElementById('pop-speed');
+  function syncSpeedUI() {
+    speedBox.querySelectorAll('button').forEach(b =>
+      b.classList.toggle('active', b.dataset.speed === speedKey));
+  }
+  speedBox.querySelectorAll('button').forEach(b => {
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      speedKey = b.dataset.speed;
+      localStorage.setItem('tg_pop_speed', speedKey);
+      syncSpeedUI();
+      Sound.tone(560, 0.12, 'sine', 0.07);
+    });
+  });
+  syncSpeedUI();
 
   function makeSeedSVG() {
     return `
@@ -1182,7 +1241,7 @@ goTo(0, true);
     const y = rect.height - 40;
     el.style.left = x + 'px';
     el.style.top = y + 'px';
-    el.dataset.vy = (0.4 + Math.random()*0.5).toFixed(2); // px per frame
+    el.dataset.vy = ((0.4 + Math.random()*0.5) * SPEEDS[speedKey]).toFixed(2); // px per frame
     el.dataset.swayOffset = (Math.random()*Math.PI*2).toFixed(2);
     el.dataset.swayAmp = (10 + Math.random()*16).toFixed(1);
     el.dataset.startX = x.toFixed(1);
@@ -1438,48 +1497,60 @@ goTo(0, true);
   const resetBtn = document.getElementById('puzzle-reset');
 
   // The picture: a garden scene split into 4 quadrants.
-  function fullSceneSVG() {
-    return `
-      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" width="200" height="200">
-        <defs>
-          <linearGradient id="sky2" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stop-color="#fdf6e3"/>
-            <stop offset="100%" stop-color="#e6f0d8"/>
-          </linearGradient>
-        </defs>
-        <rect width="200" height="200" fill="url(#sky2)"/>
-        <circle cx="160" cy="40" r="22" fill="#f5d76e"/>
-        <ellipse cx="40" cy="50" rx="22" ry="8" fill="#fff" opacity="0.85"/>
-        <path d="M0,140 Q60,120 120,135 T200,130 L200,200 L0,200 Z" fill="#9fc77a"/>
-        <path d="M0,165 Q60,150 120,160 T200,158 L200,200 L0,200 Z" fill="#7fae5d"/>
-        <g transform="translate(50,150)">
-          <rect x="-1.5" y="0" width="3" height="30" fill="#7fae5d"/>
-          <circle cx="0" cy="-3" r="7" fill="#f4a8c2"/>
-          <circle cx="-7" cy="-3" r="7" fill="#f4a8c2"/>
-          <circle cx="7" cy="-3" r="7" fill="#f4a8c2"/>
-          <circle cx="0" cy="-10" r="7" fill="#f4a8c2"/>
-          <circle cx="0" cy="4" r="7" fill="#f4a8c2"/>
-          <circle cx="0" cy="-3" r="4" fill="#f5d76e"/>
-        </g>
-        <g transform="translate(150,155)">
-          <rect x="-1.5" y="0" width="3" height="28" fill="#7fae5d"/>
-          <circle cx="0" cy="-3" r="7" fill="#c5a8d8"/>
-          <circle cx="-7" cy="-3" r="7" fill="#c5a8d8"/>
-          <circle cx="7" cy="-3" r="7" fill="#c5a8d8"/>
-          <circle cx="0" cy="-10" r="7" fill="#c5a8d8"/>
-          <circle cx="0" cy="4" r="7" fill="#c5a8d8"/>
-          <circle cx="0" cy="-3" r="4" fill="#f5d76e"/>
-        </g>
-        <g transform="translate(110,75)">
-          <ellipse cx="-8" cy="-3" rx="9" ry="6" fill="#f4a8c2"/>
-          <ellipse cx="8" cy="-3" rx="9" ry="6" fill="#f4a8c2"/>
-          <ellipse cx="-7" cy="6" rx="6" ry="5" fill="#c5a8d8"/>
-          <ellipse cx="7" cy="6" rx="6" ry="5" fill="#c5a8d8"/>
-          <ellipse cx="0" cy="0" rx="1.5" ry="6" fill="#4a3328"/>
-        </g>
-      </svg>
-    `;
-  }
+  // A small library of picture scenes; the puzzle shows a different one each
+  // round (cycles on "Mix again"). All share the 200x200 frame so the 2x2
+  // slicing in pieceHTML works unchanged.
+  const FRAME = (inner) =>
+    `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" width="200" height="200">${inner}</svg>`;
+  const grass = `<path d="M0,140 Q60,120 120,135 T200,130 L200,200 L0,200 Z" fill="#9fc77a"/>`
+              + `<path d="M0,165 Q60,150 120,160 T200,158 L200,200 L0,200 Z" fill="#7fae5d"/>`;
+  const pFlower = (x, y, c) => `<g transform="translate(${x},${y})">`
+    + `<rect x="-1.5" y="0" width="3" height="28" fill="#7fae5d"/>`
+    + `<circle cx="0" cy="-3" r="7" fill="${c}"/><circle cx="-7" cy="-3" r="7" fill="${c}"/>`
+    + `<circle cx="7" cy="-3" r="7" fill="${c}"/><circle cx="0" cy="-10" r="7" fill="${c}"/>`
+    + `<circle cx="0" cy="4" r="7" fill="${c}"/><circle cx="0" cy="-3" r="4" fill="#f5d76e"/></g>`;
+  const pButterfly = (x, y, s) => `<g transform="translate(${x},${y}) scale(${s})">`
+    + `<ellipse cx="-8" cy="-4" rx="9" ry="7" fill="#f4a8c2"/><ellipse cx="8" cy="-4" rx="9" ry="7" fill="#f4a8c2"/>`
+    + `<ellipse cx="-7" cy="6" rx="7" ry="6" fill="#c5a8d8"/><ellipse cx="7" cy="6" rx="7" ry="6" fill="#c5a8d8"/>`
+    + `<ellipse cx="0" cy="0" rx="1.8" ry="8" fill="#4a3328"/>`
+    + `<path d="M0,-7 Q-3,-13 -5,-14 M0,-7 Q3,-13 5,-14" stroke="#4a3328" stroke-width="1" fill="none"/></g>`;
+
+  const PUZZLE_SCENES = [
+    // 0 — Flower garden by day
+    () => FRAME(
+      `<rect width="200" height="200" fill="#fdf6e3"/>`
+      + `<circle cx="162" cy="40" r="20" fill="#f5d76e"/>`
+      + `<g fill="#fff" opacity="0.9"><ellipse cx="44" cy="46" rx="20" ry="9"/><ellipse cx="60" cy="40" rx="13" ry="8"/></g>`
+      + grass
+      + pFlower(45, 150, '#f4a8c2') + pFlower(100, 156, '#d96666') + pFlower(155, 150, '#c5a8d8')
+      + pButterfly(120, 80, 1)),
+    // 1 — Butterfly meadow
+    () => FRAME(
+      `<rect width="200" height="200" fill="#eaf3fb"/>`
+      + `<circle cx="40" cy="42" r="18" fill="#f5d76e"/>`
+      + `<g fill="#fff" opacity="0.9"><ellipse cx="150" cy="40" rx="22" ry="9"/><ellipse cx="166" cy="34" rx="13" ry="7"/></g>`
+      + grass
+      + pButterfly(100, 92, 1.9)
+      + pFlower(35, 158, '#c5a8d8') + pFlower(170, 156, '#f4a8c2')),
+    // 2 — Apple tree
+    () => FRAME(
+      `<rect width="200" height="200" fill="#fdf6e3"/>`
+      + `<circle cx="40" cy="40" r="16" fill="#f5d76e"/>`
+      + grass
+      + `<rect x="94" y="105" width="12" height="55" rx="3" fill="#7b5b3d"/>`
+      + `<circle cx="100" cy="80" r="42" fill="#7fae5d"/><circle cx="70" cy="92" r="26" fill="#9fc77a"/><circle cx="132" cy="92" r="26" fill="#9fc77a"/>`
+      + `<circle cx="82" cy="72" r="7" fill="#d96666"/><circle cx="112" cy="70" r="7" fill="#d96666"/><circle cx="100" cy="96" r="7" fill="#d96666"/><circle cx="126" cy="88" r="7" fill="#d96666"/>`),
+    // 3 — Night garden
+    () => FRAME(
+      `<rect width="200" height="200" fill="#a8b4e0"/>`
+      + `<path d="M158,26 a20,20 0 1,0 6,38 a16,16 0 1,1 -6,-38 Z" fill="#fdf3c4"/>`
+      + `<g fill="#fff"><circle cx="40" cy="40" r="2.5"/><circle cx="70" cy="26" r="2"/><circle cx="100" cy="46" r="2.5"/><circle cx="30" cy="80" r="2"/><circle cx="120" cy="30" r="2"/></g>`
+      + grass
+      + pFlower(50, 152, '#c5a8d8') + pFlower(150, 150, '#f4a8c2')),
+  ];
+
+  let sceneIdx = Math.floor(Math.random() * PUZZLE_SCENES.length);
+  function currentSceneSVG() { return PUZZLE_SCENES[sceneIdx](); }
 
   function pieceHTML(quad) {
     // quad: 0=TL, 1=TR, 2=BL, 3=BR
@@ -1488,7 +1559,7 @@ goTo(0, true);
     return `
       <div style="position:absolute;inset:0;overflow:hidden;border-radius:8px;background:#fff;">
         <div style="position:absolute;width:200%;height:200%;left:${offsetX}%;top:${offsetY}%;">
-          ${fullSceneSVG().replace('<svg', '<svg style="width:100%;height:100%;"')}
+          ${currentSceneSVG().replace('<svg', '<svg style="width:100%;height:100%;"')}
         </div>
       </div>
     `;
@@ -1606,6 +1677,7 @@ goTo(0, true);
 
   resetBtn.addEventListener('click', () => {
     pieces.forEach(p => p.remove());
+    sceneIdx = (sceneIdx + 1) % PUZZLE_SCENES.length; // next picture each time
     build();
   });
 
@@ -1985,22 +2057,18 @@ goTo(0, true);
 
   // --- Sky artifacts ---
   function sun(cx, cy, r, withRays) {
-    let s = shape('circle', { cx, cy, r });
-    if (withRays) {
-      for (let i = 0; i < 8; i++) {
-        const ang = i * (Math.PI / 4);
-        const r1 = r + 4, r2 = r + 14;
-        const ax = cx + Math.cos(ang) * r1, ay = cy + Math.sin(ang) * r1;
-        const bx = cx + Math.cos(ang) * r2, by = cy + Math.sin(ang) * r2;
-        const perp = ang + Math.PI / 2;
-        const w = 3;
-        const p1x = ax + Math.cos(perp) * w, p1y = ay + Math.sin(perp) * w;
-        const p2x = ax - Math.cos(perp) * w, p2y = ay - Math.sin(perp) * w;
-        const d = `M${p1x.toFixed(1)},${p1y.toFixed(1)} L${bx.toFixed(1)},${by.toFixed(1)} L${p2x.toFixed(1)},${p2y.toFixed(1)} Z`;
-        s += shape('path', { d });
-      }
+    if (!withRays) return shape('circle', { cx, cy, r });
+    // Classic sun: a starburst of rays behind a round face. Two fillable
+    // pieces that read as one sun (rays drawn first, face on top).
+    const n = 12;
+    const rOuter = r * 1.55, rInner = r * 0.82;
+    const pts = [];
+    for (let i = 0; i < n * 2; i++) {
+      const ang = (i * Math.PI / n) - Math.PI / 2;
+      const rr = (i % 2 === 0) ? rOuter : rInner;
+      pts.push(`${(cx + Math.cos(ang) * rr).toFixed(1)},${(cy + Math.sin(ang) * rr).toFixed(1)}`);
     }
-    return s;
+    return shape('polygon', { points: pts.join(' ') }) + shape('circle', { cx, cy, r });
   }
   function moon(cx, cy, r, crescent) {
     if (crescent) {
@@ -2011,9 +2079,16 @@ goTo(0, true);
     return shape('circle', { cx, cy, r });
   }
   function cloud(cx, cy, scale) {
-    return shape('circle', { cx: cx - 16*scale, cy, r: 12*scale })
-         + shape('circle', { cx: cx + 16*scale, cy, r: 12*scale })
-         + shape('circle', { cx, cy: cy - 8*scale, r: 16*scale });
+    const s = scale;
+    const P = (x, y) => `${(cx + x*s).toFixed(1)},${(cy + y*s).toFixed(1)}`;
+    // One fillable puffy cloud: rounded humps on top, gently flat bottom.
+    const d = `M ${P(-30,9)}`
+            + ` C ${P(-43,9)} ${P(-43,-5)} ${P(-29,-7)}`
+            + ` C ${P(-29,-20)} ${P(-7,-21)} ${P(-2,-10)}`
+            + ` C ${P(2,-24)} ${P(26,-22)} ${P(23,-6)}`
+            + ` C ${P(37,-8)} ${P(38,9)} ${P(24,9)}`
+            + ` Z`;
+    return shape('path', { d });
   }
   function starShape(cx, cy, size) {
     size = Math.max(MIN_STAR, size);
