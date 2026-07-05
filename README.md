@@ -7,10 +7,11 @@ A small suite of calm, garden-themed games for kids ages 1–7. One HTML file, n
 - **Pop the Fluff** (ages 1–3) — Tap floating dandelion seeds to pop them. Slow / Medium / Fast speed selector (choice remembered).
 - **Butterfly Friend** (all ages) — Tap a calm butterfly to make it flutter to a new spot.
 - **Coloring Garden** (all ages) — Tap regions to fill with color from a 12-color wheel, or stamp stickers (ladybug, bee, butterfly, flower, leaf, star, heart, sun). Tiny shapes are merged into their parent so little fingers can't miss.
-- **Garden Puzzle** (ages 4–7) — Drag four pieces into place to complete the picture. Four rotating scenes; "Mix again" shows a new one.
 - **Count Ladybugs** (ages 4–7) — Count the bugs on the flower and tap the right number.
 - **Find the Letter** (ages 4–7) — Tap the flower with the matching letter. Includes spoken letter playback.
-- **Story Time** (ages 4–6) — Five short decodable stories with a read-along karaoke highlight; each sentence is read aloud while its words light up in sequence. Tap any word to hear it again.
+- **Story Time** (ages 4–6) — Five short decodable stories, shown three words at a time. Each set is read aloud with a progress bar underneath; the child taps **Next** when ready for the next words. Slow / Medium / Fast reading speed (default Fast). Tap any word to hear it again.
+
+_Garden Puzzle is temporarily rotated out of the lineup (`active: false` in `GAME_ROTATION`); its code remains for a future rebuild._
 
 ## Design choices
 
