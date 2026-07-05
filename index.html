@@ -2498,8 +2498,7 @@ goTo(0, true);
       e.stopPropagation();
       rSpeed = b.dataset.rspeed;
       localStorage.setItem('tg_read_speed', rSpeed);
-      syncSpeedUI();
-      if (current) readFrom(0);   // apply the new speed right away
+      syncSpeedUI();   // new speed applies to the next word/▶ Again
     });
   });
   syncSpeedUI();
@@ -2539,13 +2538,12 @@ goTo(0, true);
     pageWords = (pages[i] || '').split(/\s+/).filter(Boolean);
     wordsEl.innerHTML = pageWords.map(w => `<span class="w">${w}</span>`).join('');
     wordsEl.querySelectorAll('.w').forEach((el, wi) =>
-      el.addEventListener('click', (e) => { e.stopPropagation(); readFrom(wi); }));
+      el.addEventListener('click', (e) => { e.stopPropagation(); readWord(wi); }));
     // one progress cell per word
     segsEl.innerHTML = pageWords.map(() => '<div class="read-seg"></div>').join('');
     segEls = Array.from(segsEl.querySelectorAll('.read-seg'));
     nextBtn.textContent = (i >= pages.length - 1) ? '✓ Done' : 'Next →';
-    fillUpTo(-1);
-    readFrom(0);
+    fillUpTo(-1);   // start empty — the child taps each cell to read each word
   }
 
   // Fill every word-cell up to and including `k`, and park the thumb at the end
@@ -2557,24 +2555,31 @@ goTo(0, true);
     thumb.style.left = (frac * 100).toFixed(2) + '%';
   }
 
-  // Read the sentence from word `startIdx` to the end, advancing the per-word
-  // bar in step with the reading. Timing is estimated per word (iOS Safari
-  // doesn't fire onboundary); the bar completes when the speech actually ends.
-  function readFrom(startIdx){
+  // Read ONE word — the one at index i — and mark progress up to it. The child
+  // steps through the sentence by tapping each successive cell (or word); a tap
+  // only reads that word, then they tap the next one to continue.
+  function readWord(i){
+    if (i < 0 || i >= pageWords.length) return;
     stopSpeech();
-    startIdx = Math.min(pageWords.length - 1, Math.max(0, startIdx));
-    fillUpTo(startIdx - 1);
+    fillUpTo(i);
+    speak(pageWords[i]);
+  }
+
+  // ▶ Again — read the whole sentence continuously, advancing the bar in step.
+  function readAll(){
+    stopSpeech();
+    fillUpTo(-1);
     const durs = pageWords.map(w => Math.round(PERWORD[rSpeed] * (0.55 + w.replace(/[^A-Za-z]/g,'').length * 0.14)));
     let elapsed = 0;
-    for (let i = startIdx; i < pageWords.length; i++) {
+    for (let i = 0; i < pageWords.length; i++) {
       const at = elapsed;
       elapsed += durs[i];
       timers.push(setTimeout(() => fillUpTo(i), at));
     }
-    speak(pageWords.slice(startIdx).join(' '), () => { clearTimers(); fillUpTo(pageWords.length - 1); });
+    speak(pageWords.join(' '), () => { clearTimers(); fillUpTo(pageWords.length - 1); });
   }
 
-  // ---- Drag the bar to scrub to a word ----
+  // ---- Tap a cell to read that one word; drag the thumb to move along ----
   const fracFromX = (clientX) => {
     const r = bar.getBoundingClientRect();
     return Math.min(1, Math.max(0, (clientX - r.left) / r.width));
@@ -2601,7 +2606,7 @@ goTo(0, true);
     bar.classList.remove('dragging');
     const f = fracFromX(e.clientX);
     const idx = Math.min(pageWords.length - 1, Math.max(0, Math.floor(f * pageWords.length)));
-    readFrom(idx);   // resume reading from the word they dropped on
+    readWord(idx);   // read only the word they landed on
   }
   bar.addEventListener('pointerup', endDrag);
   bar.addEventListener('pointercancel', endDrag);
@@ -2613,7 +2618,7 @@ goTo(0, true);
     if (pageIdx >= pages.length - 1) toPicker();
     else showPage(pageIdx + 1);
   });
-  replayBtn.addEventListener('click', (e) => { e.stopPropagation(); if (current) readFrom(0); });
+  replayBtn.addEventListener('click', (e) => { e.stopPropagation(); if (current) readAll(); });
   backBtn.addEventListener('click', (e) => { e.stopPropagation(); toPicker(); });
 
   function start(){ toPicker(); }
