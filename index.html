@@ -528,6 +528,79 @@
     .tab { padding: 4px 14px; }
   }
 
+  /* ===== Bead a Bracelet ===== */
+  .bracelet-stage {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    padding-top: max(env(safe-area-inset-top), 8px);
+    padding-bottom: max(env(safe-area-inset-bottom), 4px);
+  }
+  .bracelet-canvas-wrap {
+    position:relative;
+    flex: 1 1 auto;
+    display:flex; align-items:center; justify-content:center;
+    padding: 96px 10px 6px;
+    min-height: 0;
+  }
+  svg.bracelet-scene {
+    width: 100%; height: 100%;
+    max-width: 460px;
+    background: #fff8ec;
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(74,51,40,0.10);
+  }
+  .bracelet-hint {
+    position:absolute; left:50%; bottom: 14px;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.8);
+    padding: 7px 16px; border-radius: 999px;
+    font-weight:700; font-size: clamp(13px, 3.2vw, 16px);
+    color: var(--ink); text-align:center;
+    box-shadow: 0 2px 6px rgba(74,51,40,0.08);
+    pointer-events:none;
+  }
+  .bracelet-tools {
+    padding: 10px 12px 60px;
+    background: rgba(255,255,255,0.75);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -3px 10px rgba(74,51,40,0.06);
+    display:flex; flex-direction:column;
+    gap: 8px;
+  }
+  .bead-tray {
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    padding: 2px 0;
+  }
+  .bead-pick {
+    width: 100%; aspect-ratio: 1/1;
+    max-width: 60px; margin: 0 auto;
+    border-radius: 50%;
+    border: none; background: transparent;
+    cursor:pointer; padding: 2px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .bead-pick svg { width: 100%; height: 100%; }
+  .bead-pick:active { transform: scale(0.88); }
+  .placed-bead { cursor:pointer; }
+  .bead-pop { transform-box: fill-box; transform-origin: center; animation: beadPop 260ms cubic-bezier(.34,1.56,.64,1); }
+  @keyframes beadPop { 0%{ transform: scale(0); } 70%{ transform: scale(1.18); } 100%{ transform: scale(1); } }
+  .bead-sparkle { animation: beadSparkle 1s ease-out forwards; transform-box: fill-box; transform-origin: center; }
+  @keyframes beadSparkle { 0%{ transform: scale(0.2); opacity:0; } 30%{ transform: scale(1.1); opacity:1; } 100%{ transform: scale(1.4); opacity:0; } }
+  .bracelet-worn #bracelet-beads { animation: braceletGlow 1.4s ease-in-out; transform-box: fill-box; transform-origin: 200px 200px; }
+  @keyframes braceletGlow { 0%,100%{ transform: scale(1); } 40%{ transform: scale(1.06); } }
+  .bracelet-actions {
+    display:flex; justify-content:center; gap:8px; flex-wrap:wrap;
+    margin-top: 2px;
+  }
+  @media (orientation: landscape) {
+    .bracelet-canvas-wrap { padding: 50px 10px 4px; }
+    .bracelet-tools { padding: 6px 12px 34px; border-radius: 18px 18px 0 0; gap: 4px; }
+    .bead-tray { grid-template-columns: repeat(12, 1fr); gap: 5px; }
+    .bead-pick { max-width: 38px; }
+  }
+
   .fillable { cursor:pointer; }
   .placed-sticker { cursor:pointer; pointer-events:auto; }
 
@@ -762,6 +835,23 @@
           </svg>
         </div>
         <div class="label">Coloring Garden</div>
+        <div class="age">ALL AGES</div>
+      </button>
+
+      <button class="card" data-game="bracelet">
+        <div class="portrait">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="30" cy="30" r="17" fill="none" stroke="#d8c4a0" stroke-width="3"/>
+            <circle cx="30" cy="13" r="6" fill="#f4a8c2"/>
+            <circle cx="47" cy="30" r="6" fill="#a8c5e8"/>
+            <circle cx="30" cy="47" r="6" fill="#f5d76e"/>
+            <circle cx="13" cy="30" r="6" fill="#9fc77a"/>
+            <path d="M40.5,18.5 l1.8,3.6 l4,0.6 -2.9,2.8 0.7,4 -3.6,-1.9 -3.6,1.9 0.7,-4 -2.9,-2.8 4,-0.6 Z" fill="#c5a8d8"/>
+            <circle cx="30" cy="13" r="1.6" fill="#fff" opacity="0.6"/>
+            <circle cx="47" cy="30" r="1.6" fill="#fff" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="label">Bead a Bracelet</div>
         <div class="age">ALL AGES</div>
       </button>
 
@@ -1041,6 +1131,29 @@
       </div>
     </section>
 
+    <!-- ============ GAME 8: BEAD A BRACELET ============ -->
+    <section class="game" data-game="bracelet">
+      <div class="game-label">Bead a Bracelet</div>
+      <div class="bracelet-stage">
+        <div class="bracelet-canvas-wrap">
+          <svg class="bracelet-scene" id="bracelet-scene" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+            <g id="bracelet-string"></g>
+            <g id="bracelet-beads"></g>
+            <g id="bracelet-fx"></g>
+          </svg>
+          <div class="bracelet-hint" id="bracelet-hint">Tap a bead to start your bracelet ✨</div>
+        </div>
+        <div class="bracelet-tools">
+          <div class="bead-tray" id="bead-tray"></div>
+          <div class="bracelet-actions">
+            <button class="reset-btn" id="bracelet-wear">✨ Wear it!</button>
+            <button class="reset-btn" id="bracelet-undo">↩ Undo</button>
+            <button class="reset-btn" id="bracelet-clear">↺ Start over</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ GAME 7: STORY TIME (read-along) ============ -->
     <section class="game" data-game="read">
       <div class="game-label">Story Time</div>
@@ -1189,6 +1302,7 @@ const GAME_ROTATION = [
   { key: 'pop',       active: true },
   { key: 'butterfly', active: true },
   { key: 'color',     active: true },
+  { key: 'bracelet',  active: true },
   { key: 'puzzle',    active: false },  // pulled from lineup — janky on touch; code kept for a future rebuild
   { key: 'count',     active: true },
   { key: 'letter',    active: true },
@@ -1311,7 +1425,7 @@ window.addEventListener('keydown', (e) => {
 let touchStartX = null, touchStartY = null, swiping = false;
 const carousel = document.getElementById('carousel');
 function isInteractive(target) {
-  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools, .pop-speed, .read-words, .read-speed, .read-bar, .story-pick, .read-actions');
+  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools, .pop-speed, .read-words, .read-speed, .read-bar, .story-pick, .read-actions, .bracelet-scene, .bracelet-tools, .bead-pick');
 }
 carousel.addEventListener('touchstart', (e) => {
   if (e.touches.length !== 1) return;
@@ -2445,6 +2559,237 @@ goTo(0, true);
 
   // Render an initial scene so there's something to color the first time.
   newScene();
+})();
+
+
+/* =====================================================
+   GAME 8: Bead a Bracelet
+   Tap a bead in the tray to thread it onto the string; the
+   beads arrange themselves around a growing loop. Tap a bead
+   on the bracelet to take it off. "Wear it!" clasps the loop
+   and celebrates. One-tap building — different from the
+   tap-to-pop / fill / read interactions elsewhere.
+   ===================================================== */
+(() => {
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const scene    = document.getElementById('bracelet-scene');
+  const stringG  = document.getElementById('bracelet-string');
+  const beadsG   = document.getElementById('bracelet-beads');
+  const fxG      = document.getElementById('bracelet-fx');
+  const tray     = document.getElementById('bead-tray');
+  const hint     = document.getElementById('bracelet-hint');
+  const stage    = document.querySelector('.game[data-game="bracelet"]');
+  const wearBtn  = document.getElementById('bracelet-wear');
+  const undoBtn  = document.getElementById('bracelet-undo');
+  const clearBtn = document.getElementById('bracelet-clear');
+
+  const CX = 200, CY = 200, RING = 128;   // bracelet loop geometry
+  const MAX_BEADS = 22;                    // loop is "full" past this
+
+  // Tray of ready-to-thread beads (a friendly spread of shapes + colors).
+  const TRAY = [
+    { shape:'round',   color:'#f4a8c2' },
+    { shape:'round',   color:'#a8c5e8' },
+    { shape:'round',   color:'#f5d76e' },
+    { shape:'round',   color:'#9fc77a' },
+    { shape:'heart',   color:'#d96666' },
+    { shape:'heart',   color:'#e88aa9' },
+    { shape:'star',    color:'#c5a8d8' },
+    { shape:'star',    color:'#f5d76e' },
+    { shape:'flower',  color:'#fdb462' },
+    { shape:'flower',  color:'#f4a8c2' },
+    { shape:'diamond', color:'#a8d8c5' },
+    { shape:'round',   color:'#7b5b3d' },
+  ];
+
+  let beads = [];       // [{shape, color}, ...] threaded in order
+  let worn = false;
+  let justAdded = -1;   // index to pop-animate on the next render
+
+  // --- Bead shape drawing (returns a <g> centered at 0,0) ---------------
+  function starPath(r) {
+    let pts = [];
+    for (let i = 0; i < 10; i++) {
+      const rad = (i % 2) ? r * 0.45 : r;
+      const a = -Math.PI / 2 + i * Math.PI / 5;
+      pts.push(`${(rad*Math.cos(a)).toFixed(1)},${(rad*Math.sin(a)).toFixed(1)}`);
+    }
+    return 'M' + pts.join(' L') + ' Z';
+  }
+  function heartPath(r) {
+    return `M0,${(r*0.72).toFixed(1)} C${(-r*1.28).toFixed(1)},${(-r*0.1).toFixed(1)} `
+         + `${(-r*0.5).toFixed(1)},${(-r*0.95).toFixed(1)} 0,${(-r*0.32).toFixed(1)} `
+         + `C${(r*0.5).toFixed(1)},${(-r*0.95).toFixed(1)} ${(r*1.28).toFixed(1)},${(-r*0.1).toFixed(1)} `
+         + `0,${(r*0.72).toFixed(1)} Z`;
+  }
+  function beadEl(shape, color, r) {
+    const g = document.createElementNS(SVGNS, 'g');
+    const stroke = 'rgba(74,51,40,0.22)';
+    const sw = Math.max(0.8, r * 0.06);
+    if (shape === 'flower') {
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI/2 + i * 2*Math.PI/5;
+        const p = document.createElementNS(SVGNS, 'circle');
+        p.setAttribute('cx', (Math.cos(a)*r*0.52).toFixed(1));
+        p.setAttribute('cy', (Math.sin(a)*r*0.52).toFixed(1));
+        p.setAttribute('r', (r*0.5).toFixed(1));
+        p.setAttribute('fill', color);
+        p.setAttribute('stroke', stroke); p.setAttribute('stroke-width', sw);
+        g.appendChild(p);
+      }
+      const c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('r', (r*0.42).toFixed(1));
+      c.setAttribute('fill', '#fff3c4');
+      g.appendChild(c);
+      return g;
+    }
+    let el;
+    if (shape === 'round') {
+      el = document.createElementNS(SVGNS, 'circle');
+      el.setAttribute('r', r.toFixed(1));
+    } else if (shape === 'diamond') {
+      const s = r * 1.5;
+      el = document.createElementNS(SVGNS, 'rect');
+      el.setAttribute('x', (-s/2).toFixed(1)); el.setAttribute('y', (-s/2).toFixed(1));
+      el.setAttribute('width', s.toFixed(1));  el.setAttribute('height', s.toFixed(1));
+      el.setAttribute('rx', (r*0.22).toFixed(1));
+      el.setAttribute('transform', 'rotate(45)');
+    } else {
+      el = document.createElementNS(SVGNS, 'path');
+      el.setAttribute('d', shape === 'star' ? starPath(r) : heartPath(r));
+    }
+    el.setAttribute('fill', color);
+    el.setAttribute('stroke', stroke);
+    el.setAttribute('stroke-width', sw);
+    g.appendChild(el);
+    // glossy highlight for the smooth shapes
+    if (shape === 'round' || shape === 'diamond') {
+      const gloss = document.createElementNS(SVGNS, 'ellipse');
+      gloss.setAttribute('cx', (-r*0.3).toFixed(1)); gloss.setAttribute('cy', (-r*0.36).toFixed(1));
+      gloss.setAttribute('rx', (r*0.32).toFixed(1)); gloss.setAttribute('ry', (r*0.2).toFixed(1));
+      gloss.setAttribute('fill', 'rgba(255,255,255,0.6)');
+      g.appendChild(gloss);
+    }
+    return g;
+  }
+
+  // --- Render the bracelet ---------------------------------------------
+  function render() {
+    stringG.innerHTML = '';
+    beadsG.innerHTML = '';
+    const n = beads.length;
+    hint.hidden = n !== 0;
+    stage.classList.toggle('bracelet-worn', worn && n > 0);
+
+    // The cord: a full loop when there are beads, a soft guide when empty.
+    const cord = document.createElementNS(SVGNS, 'circle');
+    cord.setAttribute('cx', CX); cord.setAttribute('cy', CY); cord.setAttribute('r', RING);
+    cord.setAttribute('fill', 'none');
+    cord.setAttribute('stroke', n === 0 ? '#e8dcc2' : (worn ? '#e6b64c' : '#d8c4a0'));
+    cord.setAttribute('stroke-width', worn ? 8 : 6);
+    if (n === 0) cord.setAttribute('stroke-dasharray', '6 10');
+    stringG.appendChild(cord);
+
+    if (n === 0) return;
+
+    // Beads spaced evenly around the loop; size adapts so they never overlap.
+    const beadR = n <= 1 ? 26 : Math.max(11, Math.min(26, RING * Math.sin(Math.PI / n) * 0.9));
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+      const x = CX + RING * Math.cos(a);
+      const y = CY + RING * Math.sin(a);
+      const g = beadEl(beads[i].shape, beads[i].color, beadR);
+      g.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+      g.setAttribute('class', i === justAdded ? 'placed-bead bead-pop' : 'placed-bead');
+      g.dataset.index = i;
+      beadsG.appendChild(g);
+    }
+    justAdded = -1;
+  }
+
+  // --- Actions ----------------------------------------------------------
+  function addBead(bead) {
+    if (beads.length >= MAX_BEADS) {
+      hint.textContent = 'Your bracelet is full! ✨';
+      hint.hidden = false;
+      Sound.gentle();
+      return;
+    }
+    beads.push({ ...bead });
+    worn = false;
+    justAdded = beads.length - 1;
+    // Ascending "threading" note as the bracelet grows.
+    Sound.tone(440 + beads.length * 28, 0.16, 'sine', 0.10);
+    render();
+  }
+  function removeAt(i) {
+    if (i < 0 || i >= beads.length) return;
+    beads.splice(i, 1);
+    worn = false;
+    Sound.tone(360, 0.14, 'sine', 0.07);
+    render();
+  }
+  function sparkle() {
+    fxG.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+      const a = -Math.PI / 2 + i * 2 * Math.PI / 8;
+      const x = CX + (RING + 22) * Math.cos(a);
+      const y = CY + (RING + 22) * Math.sin(a);
+      const s = document.createElementNS(SVGNS, 'path');
+      s.setAttribute('d', starPath(9));
+      s.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+      s.setAttribute('fill', '#f5d76e');
+      s.setAttribute('class', 'bead-sparkle');
+      s.style.animationDelay = (i * 45) + 'ms';
+      fxG.appendChild(s);
+    }
+    setTimeout(() => { fxG.innerHTML = ''; }, 1400);
+  }
+  function wear() {
+    if (beads.length < 3) {
+      hint.textContent = 'Add a few more beads first! 💫';
+      hint.hidden = false;
+      Sound.gentle();
+      return;
+    }
+    worn = true;
+    render();
+    sparkle();
+    Sound.happy();
+  }
+
+  // Build the bead tray.
+  TRAY.forEach(bead => {
+    const btn = document.createElement('button');
+    btn.className = 'bead-pick';
+    btn.setAttribute('aria-label', bead.color + ' ' + bead.shape + ' bead');
+    const svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('viewBox', '-24 -24 48 48');
+    svg.appendChild(beadEl(bead.shape, bead.color, 20));
+    btn.appendChild(svg);
+    btn.addEventListener('click', (e) => { e.stopPropagation(); addBead(bead); });
+    tray.appendChild(btn);
+  });
+
+  // Tap a threaded bead to take it off.
+  beadsG.addEventListener('click', (e) => {
+    const g = e.target.closest && e.target.closest('g[data-index]');
+    if (!g) return;
+    e.stopPropagation();
+    removeAt(parseInt(g.dataset.index, 10));
+  });
+
+  wearBtn.addEventListener('click', (e) => { e.stopPropagation(); wear(); });
+  undoBtn.addEventListener('click', (e) => { e.stopPropagation(); removeAt(beads.length - 1); });
+  clearBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    beads = []; worn = false; fxG.innerHTML = '';
+    hint.textContent = 'Tap a bead to start your bracelet ✨';
+    Sound.gentle();
+    render();
+  });
+
+  render();
 })();
 
 
