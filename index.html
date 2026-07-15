@@ -583,7 +583,8 @@
   }
   .bead-pick svg { width: 100%; height: 100%; }
   .bead-pick:active { transform: scale(0.88); }
-  .placed-bead { cursor:pointer; }
+  .placed-bead { cursor: grab; }
+  .placed-bead:active { cursor: grabbing; }
   .bead-pop { transform-box: fill-box; transform-origin: center; animation: beadPop 260ms cubic-bezier(.34,1.56,.64,1); }
   @keyframes beadPop { 0%{ transform: scale(0); } 70%{ transform: scale(1.18); } 100%{ transform: scale(1); } }
   .bead-sparkle { animation: beadSparkle 1s ease-out forwards; transform-box: fill-box; transform-origin: center; }
@@ -2692,10 +2693,11 @@ goTo(0, true);
 
     if (n === 0) return;
 
-    // Beads spaced evenly around the loop; size adapts so they never overlap.
+    // Beads sit evenly around the loop by default; a bead that's been dragged
+    // keeps its own angle (userAngle) so it stays where it was slid to.
     const beadR = n <= 1 ? 26 : Math.max(11, Math.min(26, RING * Math.sin(Math.PI / n) * 0.9));
     for (let i = 0; i < n; i++) {
-      const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+      const a = (beads[i].userAngle != null) ? beads[i].userAngle : (-Math.PI / 2 + i * 2 * Math.PI / n);
       const x = CX + RING * Math.cos(a);
       const y = CY + RING * Math.sin(a);
       const g = beadEl(beads[i].shape, beads[i].color, beadR);
@@ -2771,13 +2773,53 @@ goTo(0, true);
     tray.appendChild(btn);
   });
 
-  // Tap a threaded bead to take it off.
-  beadsG.addEventListener('click', (e) => {
+  // Convert a pointer event into the scene's viewBox coordinates
+  // (accounts for preserveAspectRatio="xMidYMid meet": uniform scale + centering).
+  function svgPoint(evt) {
+    const rect = scene.getBoundingClientRect();
+    const vb = scene.viewBox.baseVal;
+    const scale = Math.min(rect.width / vb.width, rect.height / vb.height);
+    const offX = (rect.width - vb.width * scale) / 2;
+    const offY = (rect.height - vb.height * scale) / 2;
+    return { x: (evt.clientX - rect.left - offX) / scale, y: (evt.clientY - rect.top - offY) / scale };
+  }
+
+  // Drag a bead to slide it along the string; a tap (no real movement) takes it
+  // off. Dragging only changes that one bead's angle — it never reorders the row.
+  let drag = null;                 // { index, el, moved, startX, startY }
+  const DRAG_THRESH2 = 30;         // client-px^2 before a press becomes a drag
+
+  beadsG.addEventListener('pointerdown', (e) => {
     const g = e.target.closest && e.target.closest('g[data-index]');
     if (!g) return;
-    e.stopPropagation();
-    removeAt(parseInt(g.dataset.index, 10));
+    e.preventDefault();
+    drag = { index: parseInt(g.dataset.index, 10), el: g, moved: false, startX: e.clientX, startY: e.clientY };
+    try { scene.setPointerCapture(e.pointerId); } catch (_) {}
   });
+  scene.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    if (!drag.moved) {
+      const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
+      if (dx * dx + dy * dy < DRAG_THRESH2) return;
+      drag.moved = true;
+      Sound.tone(500, 0.08, 'sine', 0.05);   // "pick up" tick
+    }
+    const p = svgPoint(e);
+    const ang = Math.atan2(p.y - CY, p.x - CX);
+    beads[drag.index].userAngle = ang;       // pin the bead to the string here
+    const x = CX + RING * Math.cos(ang), y = CY + RING * Math.sin(ang);
+    drag.el.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+  });
+  function endDrag(e) {
+    if (!drag) return;
+    const { index, moved } = drag;
+    try { scene.releasePointerCapture(e.pointerId); } catch (_) {}
+    drag = null;
+    if (moved) Sound.tone(560, 0.10, 'sine', 0.06);   // "set down" tick
+    else removeAt(index);                              // a plain tap removes it
+  }
+  scene.addEventListener('pointerup', endDrag);
+  scene.addEventListener('pointercancel', endDrag);
 
   wearBtn.addEventListener('click', (e) => { e.stopPropagation(); wear(); });
   undoBtn.addEventListener('click', (e) => { e.stopPropagation(); removeAt(beads.length - 1); });
