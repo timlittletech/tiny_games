@@ -2674,6 +2674,70 @@ goTo(0, true);
     return g;
   }
 
+  // --- Loop geometry + gentle bead spacing -----------------------------
+  function norm(a) { a %= 2 * Math.PI; return a < 0 ? a + 2 * Math.PI : a; }
+
+  // Bead radius: fixed while there's room to spare, shrinking only once the
+  // loop gets crowded so a full bracelet still fits without hard overlap.
+  function beadRadius(n) {
+    if (n <= 1) return 24;
+    return Math.max(11, Math.min(24, RING * Math.sin(Math.PI / n) * 0.92));
+  }
+  // Minimum centre-to-centre angle so two beads don't overlap.
+  function minGapFor(n) {
+    return 2 * Math.asin(Math.min(0.999, (beadRadius(n) * 0.9) / RING));
+  }
+  // A fresh bead drops into the middle of the biggest open gap on the loop.
+  function nextAngle() {
+    const n = beads.length;
+    if (n === 0) return -Math.PI / 2;
+    const sorted = beads.map(b => norm(b.angle)).sort((a, b) => a - b);
+    let best = -1, mid = -Math.PI / 2;
+    for (let i = 0; i < sorted.length; i++) {
+      const a = sorted[i];
+      const b = (i + 1 < sorted.length) ? sorted[i + 1] : sorted[0] + 2 * Math.PI;
+      if (b - a > best) { best = b - a; mid = a + (b - a) / 2; }
+    }
+    return mid;
+  }
+  function positionBeads() {
+    for (const g of beadsG.children) {
+      const a = beads[+g.dataset.index].angle;
+      g.setAttribute('transform', `translate(${(CX + RING * Math.cos(a)).toFixed(1)},${(CY + RING * Math.sin(a)).toFixed(1)})`);
+    }
+  }
+
+  // Relaxation loop: keeps beads at least minGap apart, easing neighbours out
+  // of the way. Runs while dragging and for a short settle afterwards. The
+  // dragged bead (if any) is anchored to the finger; the rest give way.
+  const sim = { raf: 0, dragIndex: -1, dragAngle: 0, settle: 0 };
+  function startSim() { if (!sim.raf) sim.raf = requestAnimationFrame(tick); }
+  function tick() {
+    const n = beads.length;
+    if (n === 0) { sim.raf = 0; return; }
+    if (sim.dragIndex >= 0 && sim.dragIndex < n) beads[sim.dragIndex].angle = sim.dragAngle;
+    const minGap = minGapFor(n);
+    let maxMove = 0;
+    for (let iter = 0; iter < 3; iter++) {
+      const order = beads.map((b, i) => i).sort((x, y) => norm(beads[x].angle) - norm(beads[y].angle));
+      for (let k = 0; k < order.length && order.length > 1; k++) {
+        const ia = order[k], ib = order[(k + 1) % order.length];
+        let gap = norm(beads[ib].angle) - norm(beads[ia].angle);
+        if (k === order.length - 1) gap += 2 * Math.PI;      // wrap-around pair
+        if (gap >= minGap) continue;
+        const push = (minGap - gap) * 0.5;                   // gentle nudge
+        if (ia === sim.dragIndex)      beads[ib].angle = norm(beads[ib].angle) + push;
+        else if (ib === sim.dragIndex) beads[ia].angle = norm(beads[ia].angle) - push;
+        else { beads[ia].angle = norm(beads[ia].angle) - push / 2; beads[ib].angle = norm(beads[ib].angle) + push / 2; }
+        maxMove = Math.max(maxMove, push);
+      }
+    }
+    positionBeads();
+    if (sim.dragIndex >= 0) { sim.settle = 0; sim.raf = requestAnimationFrame(tick); }
+    else if (maxMove > 0.0006 && sim.settle++ < 240) sim.raf = requestAnimationFrame(tick);
+    else sim.raf = 0;
+  }
+
   // --- Render the bracelet ---------------------------------------------
   function render() {
     stringG.innerHTML = '';
@@ -2693,15 +2757,14 @@ goTo(0, true);
 
     if (n === 0) return;
 
-    // Beads sit evenly around the loop by default; a bead that's been dragged
-    // keeps its own angle (userAngle) so it stays where it was slid to.
-    const beadR = n <= 1 ? 26 : Math.max(11, Math.min(26, RING * Math.sin(Math.PI / n) * 0.9));
+    // Each bead has its own angle on the loop and can be dragged anywhere.
+    // Beads hold a minimum spacing: dragging one gently pushes its neighbours
+    // along the string to make room (see the relaxation in tick()).
+    const beadR = beadRadius(n);
     for (let i = 0; i < n; i++) {
-      const a = (beads[i].userAngle != null) ? beads[i].userAngle : (-Math.PI / 2 + i * 2 * Math.PI / n);
-      const x = CX + RING * Math.cos(a);
-      const y = CY + RING * Math.sin(a);
+      const a = beads[i].angle;
       const g = beadEl(beads[i].shape, beads[i].color, beadR);
-      g.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+      g.setAttribute('transform', `translate(${(CX + RING * Math.cos(a)).toFixed(1)},${(CY + RING * Math.sin(a)).toFixed(1)})`);
       g.setAttribute('class', i === justAdded ? 'placed-bead bead-pop' : 'placed-bead');
       g.dataset.index = i;
       beadsG.appendChild(g);
@@ -2717,12 +2780,13 @@ goTo(0, true);
       Sound.gentle();
       return;
     }
-    beads.push({ ...bead });
+    beads.push({ ...bead, angle: nextAngle() });
     worn = false;
     justAdded = beads.length - 1;
     // Ascending "threading" note as the bracelet grows.
     Sound.tone(440 + beads.length * 28, 0.16, 'sine', 0.10);
     render();
+    startSim();   // ease any tight neighbours apart
   }
   function removeAt(i) {
     if (i < 0 || i >= beads.length) return;
@@ -2784,8 +2848,8 @@ goTo(0, true);
     return { x: (evt.clientX - rect.left - offX) / scale, y: (evt.clientY - rect.top - offY) / scale };
   }
 
-  // Drag a bead to slide it along the string; a tap (no real movement) takes it
-  // off. Dragging only changes that one bead's angle — it never reorders the row.
+  // Drag a bead to drop it anywhere on the loop; its neighbours gently push
+  // away to keep spacing. A tap (no real movement) takes the bead off.
   let drag = null;                 // { index, el, moved, startX, startY }
   const DRAG_THRESH2 = 30;         // client-px^2 before a press becomes a drag
 
@@ -2802,21 +2866,26 @@ goTo(0, true);
       const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
       if (dx * dx + dy * dy < DRAG_THRESH2) return;
       drag.moved = true;
+      beadsG.appendChild(drag.el);           // lift the dragged bead on top
       Sound.tone(500, 0.08, 'sine', 0.05);   // "pick up" tick
     }
     const p = svgPoint(e);
-    const ang = Math.atan2(p.y - CY, p.x - CX);
-    beads[drag.index].userAngle = ang;       // pin the bead to the string here
-    const x = CX + RING * Math.cos(ang), y = CY + RING * Math.sin(ang);
-    drag.el.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+    sim.dragIndex = drag.index;              // anchor this bead to the finger
+    sim.dragAngle = Math.atan2(p.y - CY, p.x - CX);
+    startSim();                              // neighbours ease out of the way
   });
   function endDrag(e) {
     if (!drag) return;
     const { index, moved } = drag;
     try { scene.releasePointerCapture(e.pointerId); } catch (_) {}
     drag = null;
-    if (moved) Sound.tone(560, 0.10, 'sine', 0.06);   // "set down" tick
-    else removeAt(index);                              // a plain tap removes it
+    if (moved) {
+      sim.dragIndex = -1;                    // release: let everything settle
+      startSim();
+      Sound.tone(560, 0.10, 'sine', 0.06);   // "set down" tick
+    } else {
+      removeAt(index);                       // a plain tap removes it
+    }
   }
   scene.addEventListener('pointerup', endDrag);
   scene.addEventListener('pointercancel', endDrag);
@@ -2826,6 +2895,8 @@ goTo(0, true);
   clearBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     beads = []; worn = false; fxG.innerHTML = '';
+    if (sim.raf) { cancelAnimationFrame(sim.raf); sim.raf = 0; }
+    sim.dragIndex = -1;
     hint.textContent = 'Tap a bead to start your bracelet ✨';
     Sound.gentle();
     render();
