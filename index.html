@@ -662,6 +662,37 @@
   .read-btn:active { transform: translateY(2px); }
   .read-btn.primary { background: var(--petal); color:#4a3328; }
 
+  /* ==== Game 9: Mermaid Bubbles ==== */
+  #mermaid-canvas { position:absolute; inset:0; overflow:hidden; z-index:1; }
+  .mermaid-sprite {
+    position:absolute; top:0; left:0; width:76px; height:88px;
+    pointer-events:none; z-index:3; will-change:transform;
+  }
+  .mermaid-sprite svg { width:100%; height:100%; display:block; }
+  .mermaid-bubble {
+    position:absolute; border-radius:50%; pointer-events:auto; z-index:2;
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95), rgba(255,255,255,0.2) 42%, rgba(175,222,244,0.35) 72%);
+    border:1.5px solid rgba(255,255,255,0.6);
+    box-shadow: inset 0 0 7px rgba(255,255,255,0.55);
+  }
+  .mermaid-bubble.popping { animation: mbPop 300ms ease-out forwards; pointer-events:none; }
+  @keyframes mbPop { 0%{transform:scale(1);opacity:0.9;} 100%{transform:scale(1.7);opacity:0;} }
+  .mermaid-shell {
+    position:absolute; width:46px; height:42px; pointer-events:auto; z-index:2;
+    filter: drop-shadow(0 2px 3px rgba(20,60,90,0.28));
+  }
+  .mermaid-shell svg { width:100%; height:100%; display:block; }
+  .mermaid-tray {
+    position:absolute; top: calc(max(env(safe-area-inset-top),10px) + 96px);
+    left:50%; transform:translateX(-50%);
+    z-index:6; display:flex; gap:8px;
+    background: rgba(255,255,255,0.58); padding:6px 12px; border-radius:999px;
+    box-shadow: 0 2px 6px rgba(20,60,90,0.18);
+  }
+  .mermaid-slot { display:flex; align-items:center; gap:3px; font-weight:700; font-size:14px; color:#215a72; }
+  .mermaid-slot svg { width:22px; height:22px; display:block; }
+  .mermaid-slot .num { display:inline-block; min-width:9px; text-align:center; transition: transform 150ms; }
+
   /* ==== Universal play timer ==== */
   #timerBtn.on { background: var(--petal); box-shadow:0 0 0 3px rgba(232,138,169,0.4); }
   .timer-lock {
@@ -853,6 +884,29 @@
           </svg>
         </div>
         <div class="label">Bead a Bracelet</div>
+        <div class="age">ALL AGES</div>
+      </button>
+
+      <button class="card" data-game="mermaid">
+        <div class="portrait">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="46" cy="14" r="4" fill="#bfe6f2" opacity="0.85"/>
+            <circle cx="52" cy="24" r="2.5" fill="#bfe6f2" opacity="0.7"/>
+            <path d="M26 30 C21 37 21 47 25 54 C27 50 31 50 33 54 C37 47 37 37 32 30 Z" fill="#54c1b0"/>
+            <path d="M29 52 C22 56 15 54 19 47 C23 52 28 50 29 54 Z" fill="#3fa899"/>
+            <path d="M29 52 C36 56 43 54 39 47 C35 52 30 50 29 54 Z" fill="#3fa899"/>
+            <path d="M24 20 C22 26 24 30 28 33 C32 30 34 26 32 20 Z" fill="#f7cba4"/>
+            <path d="M23 22 a3 3 0 0 1 6 0 z" fill="#f4a8c2"/>
+            <path d="M29 22 a2.8 2.8 0 0 1 5.4 0 z" fill="#f4a8c2"/>
+            <circle cx="29" cy="12" r="8" fill="#f7cba4"/>
+            <path d="M29 3 C21 3 18 11 22 18 C23 11 28 10 30 11 C30 8 34 5 29 3 Z" fill="#f0973f"/>
+            <path d="M36 5 C41 8 41 15 38 19 C39 12 35 9 34 9 Z" fill="#f0973f"/>
+            <circle cx="31.5" cy="12" r="1.2" fill="#4a3328"/>
+            <circle cx="26.5" cy="12" r="1.2" fill="#4a3328"/>
+            <path d="M27.5 15.5 q2 1.4 4 0" stroke="#c1554c" stroke-width="1" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="label">Mermaid Bubbles</div>
         <div class="age">ALL AGES</div>
       </button>
 
@@ -1155,6 +1209,61 @@
       </div>
     </section>
 
+    <!-- ============ GAME 9: MERMAID BUBBLES ============ -->
+    <section class="game" data-game="mermaid">
+      <div class="game-label">Mermaid Bubbles</div>
+      <div class="mermaid-tray" id="mermaid-tray" aria-label="Shells collected"></div>
+      <svg class="bg-svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="mm-water" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#8fd3ea"/>
+            <stop offset="0.55" stop-color="#4ba3c8"/>
+            <stop offset="1" stop-color="#2f7fa8"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="400" height="600" fill="url(#mm-water)"/>
+        <!-- sun rays -->
+        <polygon points="80,0 150,0 70,600 -40,600" fill="#ffffff" opacity="0.06"/>
+        <polygon points="250,0 300,0 370,600 250,600" fill="#ffffff" opacity="0.05"/>
+        <!-- sand -->
+        <path d="M0,520 Q100,485 200,510 T400,505 L400,600 L0,600 Z" fill="#ecd7a3"/>
+        <path d="M0,555 Q120,535 240,552 T400,548 L400,600 L0,600 Z" fill="#e0c583"/>
+        <!-- seaweed -->
+        <g stroke="#3f9d6b" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.85">
+          <path d="M40,556 Q30,520 44,495 Q56,470 44,440"/>
+          <path d="M60,558 Q72,528 60,505 Q50,482 62,462"/>
+          <path d="M362,552 Q374,520 358,496 Q346,472 360,450"/>
+        </g>
+        <!-- rocks -->
+        <ellipse cx="205" cy="562" rx="34" ry="17" fill="#8ba2ad"/>
+        <ellipse cx="188" cy="554" rx="16" ry="11" fill="#a2b7c0"/>
+        <!-- starfish -->
+        <g transform="translate(110,566) rotate(12)">
+          <polygon points="0,-22 5.9,-8.1 20.9,-6.8 9.5,3.1 12.9,17.8 0,10 -12.9,17.8 -9.5,3.1 -20.9,-6.8 -5.9,-8.1" fill="#f2a15f"/>
+          <circle cx="0" cy="-8" r="1.5" fill="#d9814a"/>
+          <circle cx="-5" cy="2" r="1.5" fill="#d9814a"/>
+          <circle cx="5" cy="2" r="1.5" fill="#d9814a"/>
+          <circle cx="0" cy="0" r="1.8" fill="#d9814a"/>
+        </g>
+        <!-- crab -->
+        <g transform="translate(300,562)">
+          <g stroke="#c1554c" stroke-width="3" stroke-linecap="round">
+            <path d="M-10,4 L-22,1"/><path d="M-11,8 L-22,11"/>
+            <path d="M10,4 L22,1"/><path d="M11,8 L22,11"/>
+          </g>
+          <path d="M-14,-2 q-11,-6 -16,1 q4,4 8,2" fill="#d9695f"/>
+          <path d="M14,-2 q11,-6 16,1 q-4,4 -8,2" fill="#d9695f"/>
+          <ellipse cx="0" cy="4" rx="14" ry="10" fill="#d9695f"/>
+          <line x1="-5" y1="-4" x2="-6" y2="-12" stroke="#c1554c" stroke-width="2.5"/>
+          <line x1="5" y1="-4" x2="6" y2="-12" stroke="#c1554c" stroke-width="2.5"/>
+          <circle cx="-6" cy="-13" r="3" fill="#fff"/><circle cx="-6" cy="-13" r="1.4" fill="#3a2a22"/>
+          <circle cx="6" cy="-13" r="3" fill="#fff"/><circle cx="6" cy="-13" r="1.4" fill="#3a2a22"/>
+          <path d="M-6,8 q6,4 12,0" stroke="#c1554c" stroke-width="1.5" fill="none"/>
+        </g>
+      </svg>
+      <div id="mermaid-canvas"></div>
+    </section>
+
     <!-- ============ GAME 7: STORY TIME (read-along) ============ -->
     <section class="game" data-game="read">
       <div class="game-label">Story Time</div>
@@ -1304,6 +1413,7 @@ const GAME_ROTATION = [
   { key: 'butterfly', active: true },
   { key: 'color',     active: true },
   { key: 'bracelet',  active: true },
+  { key: 'mermaid',   active: true },
   { key: 'puzzle',    active: false },  // pulled from lineup — janky on touch; code kept for a future rebuild
   { key: 'count',     active: true },
   { key: 'letter',    active: true },
@@ -1426,7 +1536,7 @@ window.addEventListener('keydown', (e) => {
 let touchStartX = null, touchStartY = null, swiping = false;
 const carousel = document.getElementById('carousel');
 function isInteractive(target) {
-  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools, .pop-speed, .read-words, .read-speed, .read-bar, .story-pick, .read-actions, .bracelet-scene, .bracelet-tools, .bead-pick');
+  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools, .pop-speed, .read-words, .read-speed, .read-bar, .story-pick, .read-actions, .bracelet-scene, .bracelet-tools, .bead-pick, .mermaid-bubble, .mermaid-shell, .mermaid-tray');
 }
 carousel.addEventListener('touchstart', (e) => {
   if (e.touches.length !== 1) return;
@@ -1456,7 +1566,7 @@ carousel.addEventListener('touchend', (e) => {
 let mouseDown = false, mouseStartX = 0;
 carousel.addEventListener('mousedown', (e) => {
   // skip if clicking interactive
-  if (e.target.closest('button, .seed, .puzzle-piece, .butterfly, .letter-flower, .choice, svg.coloring, .fillable, .pop-speed')) return;
+  if (e.target.closest('button, .seed, .puzzle-piece, .butterfly, .letter-flower, .choice, svg.coloring, .fillable, .pop-speed, .mermaid-bubble, .mermaid-shell, .mermaid-tray')) return;
   mouseDown = true; mouseStartX = e.clientX;
 });
 window.addEventListener('mouseup', (e) => {
@@ -3083,6 +3193,250 @@ goTo(0, true);
   function stop(){ stopSpeech(); }
   document.addEventListener('game-activated', (e) => {
     if (e.detail.game === 'read') start(); else stop();
+  });
+})();
+
+
+/* =====================================================
+   GAME 9: Mermaid Bubbles
+   A little mermaid swims through an underwater scene,
+   bubbles rise from the sand (tap — or let her swim into
+   them — to pop), and coloured shells rest on the sand to
+   be collected into the tray (pink, purple, green, yellow,
+   blue).
+   ===================================================== */
+(() => {
+  const wrap = document.getElementById('mermaid-canvas');
+  const trayEl = document.getElementById('mermaid-tray');
+  if (!wrap || !trayEl) return;
+
+  const SHELLS = [
+    { key:'pink',   fill:'#f4a8c2', ridge:'#d97fa3' },
+    { key:'purple', fill:'#c5a8d8', ridge:'#a17fc0' },
+    { key:'green',  fill:'#9fc77a', ridge:'#7aa855' },
+    { key:'yellow', fill:'#f5d76e', ridge:'#d3b544' },
+    { key:'blue',   fill:'#a8c5e8', ridge:'#7fa3d1' },
+  ];
+  const counts = {};
+  SHELLS.forEach(s => { counts[s.key] = 0; });
+
+  function shellSVG(fill, ridge){
+    return `<svg viewBox="0 0 44 40" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22 36 C7 36 2 20 8 11 C10 21 14 23 16 22 C14 13 18 6 22 6 C26 6 30 13 28 22 C30 23 34 21 36 11 C42 20 37 36 22 36 Z" fill="${fill}"/>
+      <g stroke="${ridge}" stroke-width="1.4" stroke-linecap="round" opacity="0.65" fill="none">
+        <path d="M22 33 L14 15"/><path d="M22 33 L22 11"/><path d="M22 33 L30 15"/>
+      </g>
+      <circle cx="22" cy="34" r="2.4" fill="${ridge}"/>
+    </svg>`;
+  }
+
+  function mermaidSVG(){
+    return `<svg viewBox="0 0 64 74" xmlns="http://www.w3.org/2000/svg">
+      <path d="M40 12 C52 16 54 34 44 46 C46 34 40 28 34 28 C40 22 36 14 40 12 Z" fill="#e07f3e"/>
+      <path d="M30 34 C24 42 24 52 28 60 C30 56 34 56 36 60 C40 52 40 42 34 34 Z" fill="#54c1b0"/>
+      <path d="M32 58 C24 62 16 60 20 52 C24 58 30 56 32 60 Z" fill="#3fa899"/>
+      <path d="M32 58 C40 62 48 60 44 52 C40 58 34 56 32 60 Z" fill="#3fa899"/>
+      <path d="M27 24 C25 30 27 34 31 37 C35 34 37 30 35 24 Z" fill="#f7cba4"/>
+      <path d="M35 26 C41 27 44 31 43 36" stroke="#f7cba4" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M26 26 a3.2 3.2 0 0 1 6.4 0 z" fill="#f4a8c2"/>
+      <path d="M31.6 26 a3 3 0 0 1 5.8 0 z" fill="#f4a8c2"/>
+      <circle cx="33" cy="16" r="8.5" fill="#f7cba4"/>
+      <path d="M33 7 C25 7 22 14 25 21 C26 15 31 14 33 15 C33 12 38 9 33 7 Z" fill="#f0973f"/>
+      <path d="M40 9 C45 12 45 18 42 22 C43 16 39 13 38 12 Z" fill="#f0973f"/>
+      <circle cx="36" cy="16" r="1.3" fill="#4a3328"/>
+      <circle cx="30.5" cy="16" r="1.3" fill="#4a3328"/>
+      <path d="M32 20 q2 1.6 4 0" stroke="#c1554c" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+      <circle cx="38" cy="19" r="1.6" fill="#f6b8b0" opacity="0.7"/>
+    </svg>`;
+  }
+
+  // Build the shell tray.
+  SHELLS.forEach(s => {
+    const slot = document.createElement('div');
+    slot.className = 'mermaid-slot';
+    slot.innerHTML = shellSVG(s.fill, s.ridge) + '<span class="num" id="mm-num-' + s.key + '">0</span>';
+    trayEl.appendChild(slot);
+  });
+
+  // The mermaid sprite.
+  const mermaid = document.createElement('div');
+  mermaid.className = 'mermaid-sprite';
+  mermaid.innerHTML = mermaidSVG();
+  wrap.appendChild(mermaid);
+
+  const bubbles = [];
+  const shells = [];
+  let active = false, rafId = null, bubbleTimer = null, shellTimer = null;
+
+  // Mermaid movement: drift gently toward a wandering target.
+  const mm = { x:100, y:200, tx:100, ty:200, dir:1, bob:0 };
+  let targetHold = 0;
+
+  function size(){ const r = wrap.getBoundingClientRect(); return { w:r.width, h:r.height }; }
+
+  function newTarget(){
+    const { w, h } = size();
+    mm.tx = 24 + Math.random() * Math.max(40, w - 130);
+    mm.ty = 60 + Math.random() * Math.max(40, h * 0.5);
+  }
+
+  function spawnBubble(){
+    if (!active) return;
+    const { w, h } = size();
+    const s = 20 + Math.random() * 26;
+    const x = 10 + Math.random() * Math.max(10, w - 20 - s);
+    const el = document.createElement('div');
+    el.className = 'mermaid-bubble';
+    el.style.width = el.style.height = s + 'px';
+    el.style.left = x + 'px';
+    el.style.top = (h - 40) + 'px';
+    el.dataset.vy = (0.5 + Math.random() * 0.7).toFixed(2);
+    el.dataset.startX = x.toFixed(1);
+    el.dataset.amp = (6 + Math.random() * 14).toFixed(1);
+    el.dataset.off = (Math.random() * Math.PI * 2).toFixed(2);
+    el.dataset.t = '0';
+    el.dataset.size = s.toFixed(1);
+    el.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); popBubble(el); });
+    wrap.appendChild(el);
+    bubbles.push(el);
+    if (bubbles.length > 26) {
+      const old = bubbles.shift();
+      if (old && old.parentNode) old.parentNode.removeChild(old);
+    }
+  }
+
+  function popBubble(el){
+    if (el.classList.contains('popping')) return;
+    el.classList.add('popping');
+    Sound.pop();
+    setTimeout(() => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+      const i = bubbles.indexOf(el);
+      if (i >= 0) bubbles.splice(i, 1);
+    }, 300);
+  }
+
+  function spawnShell(){
+    if (!active) return;
+    if (shells.filter(s => !s.classList.contains('collected')).length >= 4) return;
+    const { w, h } = size();
+    const s = SHELLS[Math.floor(Math.random() * SHELLS.length)];
+    const el = document.createElement('div');
+    el.className = 'mermaid-shell';
+    el.dataset.key = s.key;
+    el.innerHTML = shellSVG(s.fill, s.ridge);
+    const x = 16 + Math.random() * Math.max(20, w - 62);
+    const y = h * 0.72 + Math.random() * (h * 0.16);
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.dataset.baseY = y.toFixed(1);
+    el.dataset.off = (Math.random() * Math.PI * 2).toFixed(2);
+    el.dataset.t = '0';
+    el.dataset.rot = (Math.random() * 40 - 20).toFixed(0);
+    el.style.transform = 'rotate(' + el.dataset.rot + 'deg)';
+    el.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); collectShell(el); });
+    wrap.appendChild(el);
+    shells.push(el);
+  }
+
+  function collectShell(el){
+    if (el.classList.contains('collected')) return;
+    el.classList.add('collected');
+    const key = el.dataset.key;
+    counts[key]++;
+    const numEl = document.getElementById('mm-num-' + key);
+    if (numEl) {
+      numEl.textContent = counts[key];
+      numEl.style.transform = 'scale(1.6)';
+      setTimeout(() => { numEl.style.transform = ''; }, 180);
+    }
+    Sound.chime([523, 659, 880], 70, 0.28);
+    // Fly the shell up into its tray slot.
+    const trayRect = trayEl.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    const tx = trayRect.left - wrapRect.left + trayRect.width / 2 - 23;
+    const ty = trayRect.top - wrapRect.top;
+    el.style.transition = 'left 500ms ease-in, top 500ms ease-in, transform 500ms ease-in, opacity 500ms ease-in';
+    el.style.left = tx + 'px';
+    el.style.top = ty + 'px';
+    el.style.transform = 'scale(0.35) rotate(0deg)';
+    el.style.opacity = '0';
+    setTimeout(() => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+      const i = shells.indexOf(el);
+      if (i >= 0) shells.splice(i, 1);
+    }, 520);
+  }
+
+  function loop(){
+    if (!active) return;
+    // Mermaid eases toward her target, bobbing as she goes.
+    mm.x += (mm.tx - mm.x) * 0.02;
+    mm.y += (mm.ty - mm.y) * 0.02;
+    mm.bob += 0.05;
+    if (mm.tx > mm.x + 1) mm.dir = 1; else if (mm.tx < mm.x - 1) mm.dir = -1;
+    if (Math.abs(mm.tx - mm.x) < 22 && Math.abs(mm.ty - mm.y) < 22) {
+      if (++targetHold > 40) { newTarget(); targetHold = 0; }
+    }
+    const bobY = Math.sin(mm.bob) * 6;
+    const tilt = Math.sin(mm.bob * 0.7) * 4;
+    mermaid.style.transform = 'translate(' + mm.x + 'px,' + (mm.y + bobY) + 'px) scaleX(' + mm.dir + ') rotate(' + tilt + 'deg)';
+
+    const mcx = mm.x + 38, mcy = mm.y + bobY + 42;
+
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      const el = bubbles[i];
+      if (el.classList.contains('popping')) continue;
+      const vy = parseFloat(el.dataset.vy);
+      const t = parseFloat(el.dataset.t) + 1; el.dataset.t = t;
+      const sx = parseFloat(el.dataset.startX);
+      const amp = parseFloat(el.dataset.amp);
+      const off = parseFloat(el.dataset.off);
+      const sz = parseFloat(el.dataset.size);
+      const top = parseFloat(el.style.top) - vy;
+      const left = sx + Math.sin(t / 40 + off) * amp;
+      el.style.top = top + 'px';
+      el.style.left = left + 'px';
+      // The mermaid pops bubbles she swims into.
+      if (Math.hypot(left + sz / 2 - mcx, top + sz / 2 - mcy) < 30 + sz / 2) { popBubble(el); continue; }
+      if (top < -sz) { if (el.parentNode) el.parentNode.removeChild(el); bubbles.splice(i, 1); }
+    }
+
+    for (const el of shells) {
+      if (el.classList.contains('collected')) continue;
+      const t = parseFloat(el.dataset.t) + 1; el.dataset.t = t;
+      const off = parseFloat(el.dataset.off);
+      const baseY = parseFloat(el.dataset.baseY);
+      el.style.top = (baseY + Math.sin(t / 50 + off) * 3) + 'px';
+    }
+
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function start(){
+    if (active) return;
+    active = true;
+    const { w, h } = size();
+    mm.x = w * 0.3; mm.y = h * 0.35; mm.tx = mm.x; mm.ty = mm.y;
+    targetHold = 0;
+    newTarget();
+    bubbleTimer = setInterval(spawnBubble, 850);
+    shellTimer = setInterval(spawnShell, 2600);
+    for (let i = 0; i < 5; i++) setTimeout(spawnBubble, i * 180);
+    setTimeout(spawnShell, 400);
+    setTimeout(spawnShell, 1500);
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function stop(){
+    active = false;
+    if (bubbleTimer) { clearInterval(bubbleTimer); bubbleTimer = null; }
+    if (shellTimer) { clearInterval(shellTimer); shellTimer = null; }
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  document.addEventListener('game-activated', (e) => {
+    if (e.detail.game === 'mermaid') start(); else stop();
   });
 })();
 
