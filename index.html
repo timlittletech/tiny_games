@@ -663,11 +663,21 @@
   .read-btn.primary { background: var(--petal); color:#4a3328; }
 
   /* ==== Game 9: Mermaid Bubbles ==== */
-  #mermaid-canvas { position:absolute; inset:0; overflow:hidden; z-index:1; }
+  #mermaid-canvas { position:absolute; inset:0; overflow:hidden; z-index:2; }
+  /* Seabed sits at the bottom in any orientation (portrait or landscape),
+     unlike the slice-scaled bg-svg which crops the bottom in landscape. */
+  .mermaid-seabed {
+    position:absolute; left:0; right:0; bottom:0;
+    height: clamp(120px, 24%, 220px); z-index:1; pointer-events:none;
+  }
+  .mermaid-seabed .sand { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .mermaid-seabed .decor { position:absolute; bottom:0; }
   .mermaid-sprite {
     position:absolute; top:0; left:0; width:76px; height:88px;
-    pointer-events:none; z-index:3; will-change:transform;
+    pointer-events:auto; z-index:3; will-change:transform;
+    cursor:grab; touch-action:none;
   }
+  .mermaid-sprite.dragging { cursor:grabbing; }
   .mermaid-sprite svg { width:100%; height:100%; display:block; }
   .mermaid-bubble {
     position:absolute; border-radius:50%; pointer-events:auto; z-index:2;
@@ -692,6 +702,14 @@
   .mermaid-slot { display:flex; align-items:center; gap:3px; font-weight:700; font-size:14px; color:#215a72; }
   .mermaid-slot svg { width:22px; height:22px; display:block; }
   .mermaid-slot .num { display:inline-block; min-width:9px; text-align:center; transition: transform 150ms; }
+  /* Landscape (short screens): tuck the tray up so it doesn't crowd the
+     swim area, and keep the seabed from eating too much height. */
+  @media (max-height: 520px) and (orientation: landscape) {
+    .mermaid-tray { top: calc(max(env(safe-area-inset-top),8px) + 46px); gap:6px; padding:4px 10px; }
+    .mermaid-slot { font-size:13px; }
+    .mermaid-slot svg { width:19px; height:19px; }
+    .mermaid-seabed { height: clamp(90px, 30%, 150px); }
+  }
 
   /* ==== Universal play timer ==== */
   #timerBtn.on { background: var(--petal); box-shadow:0 0 0 3px rgba(232,138,169,0.4); }
@@ -1225,42 +1243,56 @@
         <!-- sun rays -->
         <polygon points="80,0 150,0 70,600 -40,600" fill="#ffffff" opacity="0.06"/>
         <polygon points="250,0 300,0 370,600 250,600" fill="#ffffff" opacity="0.05"/>
-        <!-- sand -->
-        <path d="M0,520 Q100,485 200,510 T400,505 L400,600 L0,600 Z" fill="#ecd7a3"/>
-        <path d="M0,555 Q120,535 240,552 T400,548 L400,600 L0,600 Z" fill="#e0c583"/>
-        <!-- seaweed -->
-        <g stroke="#3f9d6b" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.85">
-          <path d="M40,556 Q30,520 44,495 Q56,470 44,440"/>
-          <path d="M60,558 Q72,528 60,505 Q50,482 62,462"/>
-          <path d="M362,552 Q374,520 358,496 Q346,472 360,450"/>
-        </g>
-        <!-- rocks -->
-        <ellipse cx="205" cy="562" rx="34" ry="17" fill="#8ba2ad"/>
-        <ellipse cx="188" cy="554" rx="16" ry="11" fill="#a2b7c0"/>
-        <!-- starfish -->
-        <g transform="translate(110,566) rotate(12)">
-          <polygon points="0,-22 5.9,-8.1 20.9,-6.8 9.5,3.1 12.9,17.8 0,10 -12.9,17.8 -9.5,3.1 -20.9,-6.8 -5.9,-8.1" fill="#f2a15f"/>
-          <circle cx="0" cy="-8" r="1.5" fill="#d9814a"/>
-          <circle cx="-5" cy="2" r="1.5" fill="#d9814a"/>
-          <circle cx="5" cy="2" r="1.5" fill="#d9814a"/>
-          <circle cx="0" cy="0" r="1.8" fill="#d9814a"/>
-        </g>
-        <!-- crab -->
-        <g transform="translate(300,562)">
-          <g stroke="#c1554c" stroke-width="3" stroke-linecap="round">
-            <path d="M-10,4 L-22,1"/><path d="M-11,8 L-22,11"/>
-            <path d="M10,4 L22,1"/><path d="M11,8 L22,11"/>
-          </g>
-          <path d="M-14,-2 q-11,-6 -16,1 q4,4 8,2" fill="#d9695f"/>
-          <path d="M14,-2 q11,-6 16,1 q-4,4 -8,2" fill="#d9695f"/>
-          <ellipse cx="0" cy="4" rx="14" ry="10" fill="#d9695f"/>
-          <line x1="-5" y1="-4" x2="-6" y2="-12" stroke="#c1554c" stroke-width="2.5"/>
-          <line x1="5" y1="-4" x2="6" y2="-12" stroke="#c1554c" stroke-width="2.5"/>
-          <circle cx="-6" cy="-13" r="3" fill="#fff"/><circle cx="-6" cy="-13" r="1.4" fill="#3a2a22"/>
-          <circle cx="6" cy="-13" r="3" fill="#fff"/><circle cx="6" cy="-13" r="1.4" fill="#3a2a22"/>
-          <path d="M-6,8 q6,4 12,0" stroke="#c1554c" stroke-width="1.5" fill="none"/>
-        </g>
       </svg>
+      <!-- Bottom-anchored seabed: always sits on the floor in portrait AND
+           landscape (the bg-svg above only paints water, which covers cleanly
+           in any aspect ratio). -->
+      <div class="mermaid-seabed" aria-hidden="true">
+        <svg class="sand" viewBox="0 0 400 140" preserveAspectRatio="none">
+          <path d="M0,34 Q100,10 200,26 T400,22 L400,140 L0,140 Z" fill="#ecd7a3"/>
+          <path d="M0,72 Q120,52 240,66 T400,60 L400,140 L0,140 Z" fill="#e0c583"/>
+        </svg>
+        <svg class="decor" style="left:5%; bottom:8px; width:34px; height:96px" viewBox="0 0 40 120">
+          <g stroke="#3f9d6b" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.85">
+            <path d="M14,118 Q4,86 18,62 Q30,38 18,10"/>
+            <path d="M26,118 Q38,88 24,64 Q14,42 26,18"/>
+          </g>
+        </svg>
+        <svg class="decor" style="right:6%; bottom:10px; width:30px; height:82px" viewBox="0 0 40 120">
+          <g stroke="#3f9d6b" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.8">
+            <path d="M20,118 Q8,88 22,64 Q34,40 22,14"/>
+          </g>
+        </svg>
+        <svg class="decor" style="left:12%; bottom:6px; width:46px; height:46px" viewBox="0 0 48 48">
+          <g transform="translate(24,26) rotate(12)">
+            <polygon points="0,-22 5.9,-8.1 20.9,-6.8 9.5,3.1 12.9,17.8 0,10 -12.9,17.8 -9.5,3.1 -20.9,-6.8 -5.9,-8.1" fill="#f2a15f"/>
+            <circle cx="0" cy="-8" r="1.5" fill="#d9814a"/>
+            <circle cx="-5" cy="2" r="1.5" fill="#d9814a"/>
+            <circle cx="5" cy="2" r="1.5" fill="#d9814a"/>
+            <circle cx="0" cy="0" r="1.8" fill="#d9814a"/>
+          </g>
+        </svg>
+        <svg class="decor" style="left:44%; bottom:10px; width:78px; height:40px" viewBox="0 0 80 40">
+          <ellipse cx="46" cy="28" rx="32" ry="15" fill="#8ba2ad"/>
+          <ellipse cx="28" cy="22" rx="15" ry="10" fill="#a2b7c0"/>
+        </svg>
+        <svg class="decor" style="left:72%; bottom:8px; width:58px; height:40px" viewBox="0 0 60 40">
+          <g transform="translate(30,26)">
+            <g stroke="#c1554c" stroke-width="3" stroke-linecap="round">
+              <path d="M-10,4 L-22,1"/><path d="M-11,8 L-22,11"/>
+              <path d="M10,4 L22,1"/><path d="M11,8 L22,11"/>
+            </g>
+            <path d="M-14,-2 q-11,-6 -16,1 q4,4 8,2" fill="#d9695f"/>
+            <path d="M14,-2 q11,-6 16,1 q-4,4 -8,2" fill="#d9695f"/>
+            <ellipse cx="0" cy="4" rx="14" ry="10" fill="#d9695f"/>
+            <line x1="-5" y1="-4" x2="-6" y2="-12" stroke="#c1554c" stroke-width="2.5"/>
+            <line x1="5" y1="-4" x2="6" y2="-12" stroke="#c1554c" stroke-width="2.5"/>
+            <circle cx="-6" cy="-13" r="3" fill="#fff"/><circle cx="-6" cy="-13" r="1.4" fill="#3a2a22"/>
+            <circle cx="6" cy="-13" r="3" fill="#fff"/><circle cx="6" cy="-13" r="1.4" fill="#3a2a22"/>
+            <path d="M-6,8 q6,4 12,0" stroke="#c1554c" stroke-width="1.5" fill="none"/>
+          </g>
+        </svg>
+      </div>
       <div id="mermaid-canvas"></div>
     </section>
 
@@ -1536,7 +1568,7 @@ window.addEventListener('keydown', (e) => {
 let touchStartX = null, touchStartY = null, swiping = false;
 const carousel = document.getElementById('carousel');
 function isInteractive(target) {
-  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools, .pop-speed, .read-words, .read-speed, .read-bar, .story-pick, .read-actions, .bracelet-scene, .bracelet-tools, .bead-pick, .mermaid-bubble, .mermaid-shell, .mermaid-tray');
+  return target.closest && target.closest('svg.coloring, .puzzle-piece, .butterfly, .seed, .swatch, .sticker-pick, .tab, .color-tools, .pop-speed, .read-words, .read-speed, .read-bar, .story-pick, .read-actions, .bracelet-scene, .bracelet-tools, .bead-pick, .mermaid-bubble, .mermaid-shell, .mermaid-tray, .mermaid-sprite');
 }
 carousel.addEventListener('touchstart', (e) => {
   if (e.touches.length !== 1) return;
@@ -1566,7 +1598,7 @@ carousel.addEventListener('touchend', (e) => {
 let mouseDown = false, mouseStartX = 0;
 carousel.addEventListener('mousedown', (e) => {
   // skip if clicking interactive
-  if (e.target.closest('button, .seed, .puzzle-piece, .butterfly, .letter-flower, .choice, svg.coloring, .fillable, .pop-speed, .mermaid-bubble, .mermaid-shell, .mermaid-tray')) return;
+  if (e.target.closest('button, .seed, .puzzle-piece, .butterfly, .letter-flower, .choice, svg.coloring, .fillable, .pop-speed, .mermaid-bubble, .mermaid-shell, .mermaid-tray, .mermaid-sprite')) return;
   mouseDown = true; mouseStartX = e.clientX;
 });
 window.addEventListener('mouseup', (e) => {
@@ -3264,15 +3296,62 @@ goTo(0, true);
   mermaid.innerHTML = mermaidSVG();
   wrap.appendChild(mermaid);
 
+  const seabedEl = wrap.parentElement.querySelector('.mermaid-seabed');
+
   const bubbles = [];
   const shells = [];
   let active = false, rafId = null, bubbleTimer = null, shellTimer = null;
 
-  // Mermaid movement: drift gently toward a wandering target.
+  // Mermaid movement: drift gently toward a wandering target,
+  // unless the child is dragging her around.
   const mm = { x:100, y:200, tx:100, ty:200, dir:1, bob:0 };
   let targetHold = 0;
+  let dragging = false, dragId = null, grabDX = 0, grabDY = 0;
 
   function size(){ const r = wrap.getBoundingClientRect(); return { w:r.width, h:r.height }; }
+
+  // Top edge of the seabed sand, in px relative to the canvas — used to rest
+  // shells on the sand in any orientation.
+  function sandTop(){
+    if (!seabedEl) return size().h - 150;
+    const sr = seabedEl.getBoundingClientRect();
+    const wr = wrap.getBoundingClientRect();
+    return (sr.top - wr.top) + sr.height * 0.18;
+  }
+
+  // Drag the mermaid: while held, she follows the pointer; on release she
+  // resumes swimming from wherever she was let go.
+  mermaid.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    dragging = true; dragId = e.pointerId;
+    mermaid.classList.add('dragging');
+    const wr = wrap.getBoundingClientRect();
+    // keep the grab point under the finger (sprite centre is +38,+42)
+    grabDX = (e.clientX - wr.left) - (mm.x + 38);
+    grabDY = (e.clientY - wr.top) - (mm.y + 42);
+    try { mermaid.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  mermaid.addEventListener('pointermove', (e) => {
+    if (!dragging || e.pointerId !== dragId) return;
+    e.preventDefault();
+    const wr = wrap.getBoundingClientRect();
+    const prevX = mm.x;
+    mm.x = (e.clientX - wr.left) - grabDX - 38;
+    mm.y = (e.clientY - wr.top) - grabDY - 42;
+    // clamp inside the canvas
+    mm.x = Math.max(-6, Math.min(wr.width - 70, mm.x));
+    mm.y = Math.max(-6, Math.min(wr.height - 82, mm.y));
+    mm.tx = mm.x; mm.ty = mm.y;
+    if (mm.x > prevX + 0.6) mm.dir = 1; else if (mm.x < prevX - 0.6) mm.dir = -1;
+  });
+  function endDrag(e){
+    if (!dragging || (e && e.pointerId !== dragId)) return;
+    dragging = false; dragId = null;
+    mermaid.classList.remove('dragging');
+    targetHold = 0; newTarget();
+  }
+  mermaid.addEventListener('pointerup', endDrag);
+  mermaid.addEventListener('pointercancel', endDrag);
 
   function newTarget(){
     const { w, h } = size();
@@ -3326,7 +3405,9 @@ goTo(0, true);
     el.dataset.key = s.key;
     el.innerHTML = shellSVG(s.fill, s.ridge);
     const x = 16 + Math.random() * Math.max(20, w - 62);
-    const y = h * 0.72 + Math.random() * (h * 0.16);
+    // Rest the shell on the sand surface (a little above to a little below it).
+    const st = sandTop();
+    const y = st - 28 + Math.random() * 42;
     el.style.left = x + 'px';
     el.style.top = y + 'px';
     el.dataset.baseY = y.toFixed(1);
@@ -3370,16 +3451,18 @@ goTo(0, true);
 
   function loop(){
     if (!active) return;
-    // Mermaid eases toward her target, bobbing as she goes.
-    mm.x += (mm.tx - mm.x) * 0.02;
-    mm.y += (mm.ty - mm.y) * 0.02;
     mm.bob += 0.05;
-    if (mm.tx > mm.x + 1) mm.dir = 1; else if (mm.tx < mm.x - 1) mm.dir = -1;
-    if (Math.abs(mm.tx - mm.x) < 22 && Math.abs(mm.ty - mm.y) < 22) {
-      if (++targetHold > 40) { newTarget(); targetHold = 0; }
+    // When not being dragged, she eases toward her wandering target.
+    if (!dragging) {
+      mm.x += (mm.tx - mm.x) * 0.02;
+      mm.y += (mm.ty - mm.y) * 0.02;
+      if (mm.tx > mm.x + 1) mm.dir = 1; else if (mm.tx < mm.x - 1) mm.dir = -1;
+      if (Math.abs(mm.tx - mm.x) < 22 && Math.abs(mm.ty - mm.y) < 22) {
+        if (++targetHold > 40) { newTarget(); targetHold = 0; }
+      }
     }
-    const bobY = Math.sin(mm.bob) * 6;
-    const tilt = Math.sin(mm.bob * 0.7) * 4;
+    const bobY = dragging ? 0 : Math.sin(mm.bob) * 6;
+    const tilt = dragging ? 0 : Math.sin(mm.bob * 0.7) * 4;
     mermaid.style.transform = 'translate(' + mm.x + 'px,' + (mm.y + bobY) + 'px) scaleX(' + mm.dir + ') rotate(' + tilt + 'deg)';
 
     const mcx = mm.x + 38, mcy = mm.y + bobY + 42;
@@ -3402,12 +3485,17 @@ goTo(0, true);
       if (top < -sz) { if (el.parentNode) el.parentNode.removeChild(el); bubbles.splice(i, 1); }
     }
 
-    for (const el of shells) {
+    for (let i = shells.length - 1; i >= 0; i--) {
+      const el = shells[i];
       if (el.classList.contains('collected')) continue;
       const t = parseFloat(el.dataset.t) + 1; el.dataset.t = t;
       const off = parseFloat(el.dataset.off);
       const baseY = parseFloat(el.dataset.baseY);
-      el.style.top = (baseY + Math.sin(t / 50 + off) * 3) + 'px';
+      const top = baseY + Math.sin(t / 50 + off) * 3;
+      el.style.top = top + 'px';
+      // Collect the shell when the mermaid swims/is dragged over it.
+      const scx = parseFloat(el.style.left) + 23, scy = top + 21;
+      if (Math.hypot(scx - mcx, scy - mcy) < 42) { collectShell(el); }
     }
 
     rafId = requestAnimationFrame(loop);
